@@ -1,0 +1,169 @@
+@import "tailwindcss";
+
+:root {
+  /* Background & Foreground */
+  --background: #ffffff;
+  --foreground: #171717;
+  --muted-foreground: #6b7280;
+
+  /* Primary Colors - Emerald Green (Trust, Healthcare) */
+  --primary: #10a37f;
+  --primary-hover: #0d8a6a;
+  --primary-light: #d1fae5;
+  --primary-foreground: #ffffff;
+
+  /* Secondary/Muted */
+  --secondary: #f8f9fa;
+  --secondary-foreground: #171717;
+
+  /* Card Styles */
+  --card: #ffffff;
+  --card-foreground: #171717;
+  --card-border: #dee2e6;
+
+  /* Semantic Colors */
+  --success: #198754;
+  --success-light: #d1e7dd;
+  --warning: #fd7e14;
+  --warning-light: #fff3cd;
+  --danger: #dc3545;
+  --danger-light: #f8d7da;
+  --info: #0d6efd;
+  --info-light: #cfe2ff;
+
+  /* Accent Colors for Gradients */
+  --emerald-400: #34d399;
+  --teal-50: #f0fdfa;
+  --emerald-50: #ecfdf5;
+
+  /* Border & Ring */
+  --border: #e5e7eb;
+  --ring: #10a37f;
+
+  /* Input */
+  --input: #e5e7eb;
+  --input-focus: #10a37f;
+
+  /* Radius - Consistent 0.75rem */
+  --radius: 0.75rem;
+  --radius-sm: 0.5rem;
+  --radius-lg: 1rem;
+  --radius-full: 9999px;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted-foreground: var(--muted-foreground);
+
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-light: var(--primary-light);
+  --color-primary-foreground: var(--primary-foreground);
+
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-card-border: var(--card-border);
+
+  --color-success: var(--success);
+  --color-success-light: var(--success-light);
+  --color-warning: var(--warning);
+  --color-warning-light: var(--warning-light);
+  --color-danger: var(--danger);
+  --color-danger-light: var(--danger-light);
+  --color-info: var(--info);
+  --color-info-light: var(--info-light);
+
+  --color-emerald-400: var(--emerald-400);
+  --color-emerald-50: var(--emerald-50);
+  --color-teal-50: var(--teal-50);
+
+  --color-border: var(--border);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+
+  --radius-default: var(--radius);
+  --radius-sm: var(--radius-sm);
+  --radius-lg: var(--radius-lg);
+  --radius-full: var(--radius-full);
+
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+/* Base Styles */
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+/* Focus Ring Utility */
+.focus-ring {
+  @apply outline-none ring-2 ring-ring ring-offset-2;
+}
+
+/* Gradient Text Utility */
+.gradient-text {
+  @apply bg-gradient-to-r from-primary to-emerald-400 bg-clip-text text-transparent;
+}
+
+/* Card Gradient Overlay */
+.card-gradient {
+  @apply bg-gradient-to-br from-card via-emerald-50/30 to-teal-50/20;
+}
+
+/* Primary Gradient Background */
+.primary-gradient {
+  @apply bg-gradient-to-r from-primary to-emerald-400;
+}
+
+/* Smooth transitions */
+.transition-default {
+  @apply transition-all duration-200 ease-in-out;
+}
+
+/* Card hover effect */
+.card-hover {
+  @apply transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5;
+}
+
+/* Status Badge Styles */
+.badge-success {
+  @apply bg-success-light text-success;
+}
+
+.badge-warning {
+  @apply bg-warning-light text-warning;
+}
+
+.badge-danger {
+  @apply bg-danger-light text-danger;
+}
+
+.badge-info {
+  @apply bg-info-light text-info;
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--secondary);
+  border-radius: var(--radius);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: var(--radius);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted-foreground);
+}
