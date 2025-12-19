@@ -71,10 +71,10 @@ export default function Home() {
               </span>
             </div>
             <div className="flex items-center gap-4">
-              <Link href="/auth/login">
+              <Link href="/doctor-onboarding/auth/login">
                 <Button variant="ghost">Login</Button>
               </Link>
-              <Link href="/auth/signup">
+              <Link href="/doctor-onboarding/auth/signup">
                 <Button variant="default">Sign Up</Button>
               </Link>
             </div>
@@ -117,7 +117,7 @@ export default function Home() {
             variants={fadeInUp}
             className="flex flex-col sm:flex-row items-center justify-center gap-4"
           >
-            <Link href="/auth/signup">
+            <Link href="/doctor-onboarding/auth/signup">
               <Button variant="gradient" size="xl" className="group">
                 Start Registration
                 <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
@@ -276,7 +276,7 @@ export default function Home() {
                 Join our network today and start connecting with patients who
                 need your expertise.
               </p>
-              <Link href="/auth/signup">
+              <Link href="/doctor-onboarding/auth/signup">
                 <Button
                   size="xl"
                   className="bg-white text-primary hover:bg-white/90"
