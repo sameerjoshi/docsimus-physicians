@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useOnboarding } from "@/src/hooks/useOnboarding";
 import { useEffect, useState } from "react";
 import { ArrowLeft } from "lucide-react";
+import { RouteGuard } from "@/src/components/RouteGuard";
 
 export default function ProfilePage() {
   const { state } = useOnboarding();
@@ -30,58 +31,60 @@ export default function ProfilePage() {
   ];
 
   return (
-    <div style={styles.container}>
-      <div style={styles.header}>
-        <button
-          onClick={() => router.push("/dashboard")}
-          style={styles.backButton}
-        >
-          <ArrowLeft size={20} />
-          Back to Dashboard
-        </button>
-        <h1 style={styles.title}>Doctor Profile</h1>
-      </div>
-
-      <div style={styles.card}>
-        <div style={styles.profileHeader}>
-          <div style={styles.avatar}>
-            {(state.profile.firstName?.[0] || "D") + (state.profile.lastName?.[0] || "P")}
-          </div>
-          <div>
-            <h2 style={styles.name}>
-              Dr. {state.profile.firstName} {state.profile.lastName}
-            </h2>
-            <p style={styles.email}>{state.auth.email}</p>
-          </div>
+    <RouteGuard requireAuth={true} requireVerified={true} requireRole="DOCTOR">
+      <div style={styles.container}>
+        <div style={styles.header}>
+          <button
+            onClick={() => router.push("/dashboard")}
+            style={styles.backButton}
+          >
+            <ArrowLeft size={20} />
+            Back to Dashboard
+          </button>
+          <h1 style={styles.title}>Doctor Profile</h1>
         </div>
 
-        <div style={styles.divider}></div>
-
-        <div style={styles.profileGrid}>
-          {profileData.map((item, index) => (
-            <div key={index} style={styles.profileItem}>
-              <label style={styles.label}>{item.label}</label>
-              <p style={styles.value}>{item.value}</p>
+        <div style={styles.card}>
+          <div style={styles.profileHeader}>
+            <div style={styles.avatar}>
+              {(state.profile.firstName?.[0] || "D") + (state.profile.lastName?.[0] || "P")}
             </div>
-          ))}
-        </div>
+            <div>
+              <h2 style={styles.name}>
+                Dr. {state.profile.firstName} {state.profile.lastName}
+              </h2>
+              <p style={styles.email}>{state.auth.email}</p>
+            </div>
+          </div>
 
-        <div style={styles.divider}></div>
+          <div style={styles.divider}></div>
 
-        <div style={styles.actions}>
-          <button style={styles.editButton} onClick={() => router.push("/registration")}>
-            Edit Profile
-          </button>
-          <button style={styles.logoutButton} onClick={() => {
-            localStorage.removeItem("doctor-onboarding-state");
-            localStorage.removeItem("doctor-auth");
-            router.push("/login");
-          }}>
-            Logout
-          </button>
+          <div style={styles.profileGrid}>
+            {profileData.map((item, index) => (
+              <div key={index} style={styles.profileItem}>
+                <label style={styles.label}>{item.label}</label>
+                <p style={styles.value}>{item.value}</p>
+              </div>
+            ))}
+          </div>
+
+          <div style={styles.divider}></div>
+
+          <div style={styles.actions}>
+            <button style={styles.editButton} onClick={() => router.push("/registration")}>
+              Edit Profile
+            </button>
+            <button style={styles.logoutButton} onClick={() => {
+              localStorage.removeItem("doctor-onboarding-state");
+              localStorage.removeItem("doctor-auth");
+              router.push("/login");
+            }}>
+              Logout
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+    </RouteGuard>
   );
 }
 

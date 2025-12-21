@@ -1,16 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { DoctorDashboard } from "@/src/components/dashboard/DoctorDashboard";
+import { RouteGuard } from "@/src/components/RouteGuard";
 
 export default function SchedulePage() {
-  const [isHydrated, setIsHydrated] = useState(false);
-
-  useEffect(() => {
-    setIsHydrated(true);
-  }, []);
-
-  if (!isHydrated) return null;
-
-  return <DoctorDashboard />;
+  return (
+    <RouteGuard requireAuth={true} requireVerified={true} requireRole="DOCTOR">
+      <DoctorDashboard />
+    </RouteGuard>
+  );
 }

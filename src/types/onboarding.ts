@@ -19,6 +19,7 @@ export interface DoctorProfile {
   phone: string;
   email: string;
   dob: string;
+  gender?: string;
   photo?: string;
   addressLine1?: string;
   addressLine2?: string;

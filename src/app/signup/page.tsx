@@ -5,13 +5,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input } from "@/src/components/ui";
 import { Mail, Lock, ArrowRight } from "lucide-react";
-import { useOnboarding } from "@/src/hooks/useOnboarding";
+import { useOnboardingAPI } from "@/src/hooks/useOnboardingAPI";
 import { fadeInUp } from "@/src/lib/animations";
 import { motion } from "framer-motion";
 
 export default function SignupPage() {
   const router = useRouter();
-  const { updateAuth } = useOnboarding();
+  const { registerUser, loading } = useOnboardingAPI();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -19,7 +19,7 @@ export default function SignupPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!firstName.trim()) {
       setError("Please enter your first name");
@@ -42,7 +42,7 @@ export default function SignupPage() {
       return;
     }
     setError("");
-    updateAuth(email.trim(), password, firstName.trim(), lastName.trim());
+    const success = await registerUser(email.trim(), password, firstName.trim(), lastName.trim());
     router.push("/verify-email");
   };
 
