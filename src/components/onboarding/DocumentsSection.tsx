@@ -8,7 +8,7 @@ import { fadeInUp, staggerContainer, staggerItem } from "@/src/lib/animations";
 import { ArrowLeft, Save } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, FormEvent } from "react";
-import { useOnboarding } from "@/src/hooks/useOnboarding";
+import { useOnboardingAPI } from "@/src/hooks/useOnboardingAPI";
 import { DOCUMENT_REQUIREMENTS } from "@/src/types/onboarding";
 
 interface DocumentUploadCardProps {
@@ -61,18 +61,26 @@ function DocumentUploadCard({
               {fileName ? "Ready for review" : "Supported formats: PDF, JPG, PNG, MP4"}
             </p>
           </div>
-          <label className="relative inline-flex">
+          <div>
             <input
               type="file"
               accept={accept}
-              className="sr-only"
+              className="hidden"
+              id={`file-input-${title.replace(/\s+/g, '-')}`}
               onChange={handleChange}
             />
-            <Button variant="outline" type="button" className="gap-2">
+            <Button
+              variant="outline"
+              type="button"
+              className="gap-2"
+              onClick={() => {
+                document.getElementById(`file-input-${title.replace(/\s+/g, '-')}`)?.click();
+              }}
+            >
               <UploadCloud className="h-4 w-4" />
               Upload
             </Button>
-          </label>
+          </div>
         </div>
 
         {previewUrl && !isVideo && (
@@ -99,15 +107,42 @@ function DocumentUploadCard({
 
 export function DocumentsSection() {
   const router = useRouter();
-  const { state, updateDocument } = useOnboarding();
+  const { state, updateDocument } = useOnboardingAPI();
   const [isHydrated, setIsHydrated] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setIsHydrated(true);
   }, []);
 
-  if (!isHydrated) {
+  // Fetch uploaded documents from backend
+  useEffect(() => {
+    const fetchDocuments = async () => {
+      try {
+        const { doctorService } = await import("@/src/services/doctor.service");
+        const documents = await doctorService.getDocuments();
+
+        // Update state with uploaded documents
+        documents.forEach((doc: any) => {
+          updateDocument(doc.type as any, {
+            fileName: doc.originalName,
+            status: "uploaded",
+          });
+        });
+      } catch (error) {
+        console.error("Failed to fetch documents:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (isHydrated) {
+      fetchDocuments();
+    }
+  }, [isHydrated, updateDocument]);
+
+  if (!isHydrated || loading) {
     return null;
   }
 
@@ -154,9 +189,24 @@ export function DocumentsSection() {
               fileName={state.documents[doc.key]?.fileName}
               previewUrl={state.documents[doc.key]?.previewUrl}
               accept={doc.key === "introVideo" ? "video/mp4" : "image/*,application/pdf"}
-              onFileSelect={(file) => {
-                const previewUrl = URL.createObjectURL(file);
-                updateDocument(doc.key, { fileName: file.name, previewUrl });
+              onFileSelect={async (file) => {
+                try {
+                  // Show preview immediately
+                  const previewUrl = URL.createObjectURL(file);
+                  updateDocument(doc.key, { fileName: file.name, previewUrl });
+
+                  // Upload to backend
+                  const { doctorService } = await import("@/src/services/doctor.service");
+                  await doctorService.uploadDocument(file, doc.key);
+
+                  // Mark as uploaded
+                  updateDocument(doc.key, { fileName: file.name, previewUrl, status: "uploaded" });
+                } catch (error) {
+                  console.error("Upload failed:", error);
+                  // Revert to pending on error
+                  updateDocument(doc.key, { status: "pending" });
+                  alert("Failed to upload document. Please try again.");
+                }
               }}
             />
           </motion.div>

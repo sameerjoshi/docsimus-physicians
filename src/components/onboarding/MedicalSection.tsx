@@ -4,7 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Input } from "@/src/components/ui";
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/src/components/ui";
-import { useOnboarding } from "@/src/hooks/useOnboarding";
+import { useOnboardingAPI } from "@/src/hooks/useOnboardingAPI";
 import { motion } from "framer-motion";
 import { fadeInUp } from "@/src/lib/animations";
 import { ArrowLeft, Save } from "lucide-react";
@@ -41,7 +41,7 @@ const specializations = [
 
 export function MedicalSection() {
   const router = useRouter();
-  const { state, updateProfessional } = useOnboarding();
+  const { state, updateProfessional } = useOnboardingAPI();
   const [registrationNumber, setRegistrationNumber] = useState("");
   const [council, setCouncil] = useState("");
   const [specialization, setSpecialization] = useState("");

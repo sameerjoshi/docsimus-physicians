@@ -4,14 +4,14 @@ import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Input } from "@/src/components/ui";
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/src/components/ui";
-import { useOnboarding } from "@/src/hooks/useOnboarding";
+import { useOnboardingAPI } from "@/src/hooks/useOnboardingAPI";
 import { motion } from "framer-motion";
 import { fadeInUp } from "@/src/lib/animations";
 import { ArrowLeft, Save } from "lucide-react";
 
 export function AvailabilitySection() {
   const router = useRouter();
-  const { state, updateAvailability } = useOnboarding();
+  const { state, updateAvailability } = useOnboardingAPI();
   const [isHydrated, setIsHydrated] = useState(false);
   const [availableNow, setAvailableNow] = useState(false);
   const [weeklyAvailability, setWeeklyAvailability] = useState<Record<string, string>>({});
@@ -90,15 +90,13 @@ export function AvailabilitySection() {
               <button
                 type="button"
                 onClick={() => setAvailableNow(!availableNow)}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  availableNow ? "bg-primary" : "bg-border"
-                }`}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${availableNow ? "bg-primary" : "bg-border"
+                  }`}
                 aria-pressed={availableNow}
               >
                 <span
-                  className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${
-                    availableNow ? "translate-x-5" : "translate-x-1"
-                  }`}
+                  className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${availableNow ? "translate-x-5" : "translate-x-1"
+                    }`}
                 />
               </button>
             </div>

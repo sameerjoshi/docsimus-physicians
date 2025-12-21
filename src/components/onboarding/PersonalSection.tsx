@@ -4,33 +4,52 @@ import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Input } from "@/src/components/ui";
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/src/components/ui";
-import { useOnboarding } from "@/src/hooks/useOnboarding";
+import { useOnboardingAPI } from "@/src/hooks/useOnboardingAPI";
+import { authService } from "@/src/services/auth.service";
 import { motion } from "framer-motion";
 import { fadeInUp } from "@/src/lib/animations";
 import { ArrowLeft, Save } from "lucide-react";
 
 export function PersonalSection() {
   const router = useRouter();
-  const { state, updateProfile } = useOnboarding();
+  const { state, updateProfile } = useOnboardingAPI();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [phone, setPhone] = useState("");
-  const [dob, setDob] = useState("");
+  const [dob, setDob] = useState(""); // Starts blank
+  const [email, setEmail] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
+    // Get user data from localStorage
+    const user = authService.getUser();
+
+    // Pre-fill from state (backend data)
     setFirstName(state.profile.firstName);
     setLastName(state.profile.lastName);
     setPhone(state.profile.phone || "");
-    setDob(state.profile.dob);
+
+    // Only set dob if there's a valid value (not the placeholder date)
+    if (state.profile.dob && !state.profile.dob.startsWith('1900')) {
+      setDob(state.profile.dob);
+    }
+
+    setEmail(state.profile.email || user?.email || "");
   }, [state.profile]);
+
+  // Calculate max date (20 years ago from today)
+  const getMaxDate = () => {
+    const today = new Date();
+    const maxDate = new Date(today.getFullYear() - 20, today.getMonth(), today.getDate());
+    return maxDate.toISOString().split('T')[0];
+  };
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsSaving(true);
-    
+
     updateProfile({ firstName, lastName, phone, dob });
-    
+
     setTimeout(() => {
       setIsSaving(false);
       router.push("/onboarding");
@@ -102,21 +121,23 @@ export function PersonalSection() {
               <div className="space-y-2">
                 <label className="text-sm font-medium">Date of Birth *</label>
                 <Input
-                  placeholder="DD/MM/YYYY"
+                  placeholder="mm/dd/yyyy"
                   type="date"
                   value={dob}
                   onChange={(e) => setDob(e.target.value)}
+                  max={getMaxDate()}
                   required
                 />
+                <p className="text-xs text-muted-foreground">You must be at least 20 years old</p>
               </div>
             </div>
 
             <div className="space-y-2">
               <label className="text-sm font-medium">Email</label>
               <Input
-                placeholder={state.profile.email || "doctor@clinic.com"}
+                value={email}
                 disabled
-                defaultValue={state.profile.email}
+                className="bg-muted"
               />
               <p className="text-xs text-muted-foreground">Cannot be changed - registered with your account</p>
             </div>

@@ -4,7 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Input } from "@/src/components/ui";
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/src/components/ui";
-import { useOnboarding } from "@/src/hooks/useOnboarding";
+import { useOnboardingAPI } from "@/src/hooks/useOnboardingAPI";
 import { motion } from "framer-motion";
 import { fadeInUp } from "@/src/lib/animations";
 import { ArrowLeft, Save } from "lucide-react";
@@ -20,7 +20,7 @@ const indianStates = [
 
 export function AddressSection() {
   const router = useRouter();
-  const { state, updateProfile } = useOnboarding();
+  const { state, updateProfile } = useOnboardingAPI();
   const [addressLine1, setAddressLine1] = useState("");
   const [addressLine2, setAddressLine2] = useState("");
   const [city, setCity] = useState("");

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, Button, Badge, Avatar } from "@/src/components/ui";
 import { User, MapPin, Briefcase, FileText, Calendar, CheckCircle2, Clock3, ArrowRight } from "lucide-react";
-import { useOnboarding } from "@/src/hooks/useOnboarding";
+import { useOnboardingAPI } from "@/src/hooks/useOnboardingAPI";
 import { motion } from "framer-motion";
 import { fadeInUp, staggerContainer, staggerItem } from "@/src/lib/animations";
 
@@ -21,7 +21,7 @@ interface Section {
 
 export function OnboardingHub() {
   const router = useRouter();
-  const { state, isAuthenticated } = useOnboarding();
+  const { state, isAuthenticated } = useOnboardingAPI();
   const [isHydrated, setIsHydrated] = useState(false);
 
   useEffect(() => {
@@ -43,7 +43,7 @@ export function OnboardingHub() {
 
   const fullName = `${state.profile.firstName || ""} ${state.profile.lastName || ""}`.trim() || "Doctor";
 
-  // Calculate completion for each section
+  // Calculate completion for each section - using proper API data structure  
   const sectionCompletion = {
     personal:
       !!(state.profile.firstName && state.profile.lastName && state.profile.phone && state.profile.dob),

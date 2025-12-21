@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Badge, Avatar } from "@/src/components/ui";
-import { useOnboarding } from "@/src/hooks/useOnboarding";
+import { useOnboardingAPI } from "@/src/hooks/useOnboardingAPI";
 import { DOCUMENT_REQUIREMENTS } from "@/src/types/onboarding";
 import { motion } from "framer-motion";
 import { fadeInUp, staggerContainer, staggerItem } from "@/src/lib/animations";
@@ -11,7 +11,7 @@ import { ArrowLeft, CheckCircle2, AlertCircle } from "lucide-react";
 
 export function ReviewSection() {
   const router = useRouter();
-  const { state, setStatus } = useOnboarding();
+  const { state, submitApplication } = useOnboardingAPI();
   const [isHydrated, setIsHydrated] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -27,13 +27,20 @@ export function ReviewSection() {
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
-    // Mark onboarding as submitted
-    setStatus("pending");
-    
-    setTimeout(() => {
+    try {
+      // Submit application to backend
+      const success = await submitApplication();
+      if (success) {
+        router.push("/dashboard");
+      } else {
+        alert("Failed to submit application. Please try again.");
+      }
+    } catch (error) {
+      console.error("Submission error:", error);
+      alert("Failed to submit application. Please try again.");
+    } finally {
       setIsSubmitting(false);
-      router.push("/dashboard");
-    }, 1000);
+    }
   };
 
   return (

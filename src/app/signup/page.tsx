@@ -5,13 +5,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input } from "@/src/components/ui";
 import { Mail, Lock, ArrowRight } from "lucide-react";
-import { useOnboarding } from "@/src/hooks/useOnboarding";
+import { useOnboardingAPI } from "@/src/hooks/useOnboardingAPI";
 import { fadeInUp } from "@/src/lib/animations";
 import { motion } from "framer-motion";
 
 export default function SignupPage() {
   const router = useRouter();
-  const { updateAuth } = useOnboarding();
+  const { registerUser, loading, error: apiError, clearError } = useOnboardingAPI();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -19,8 +19,11 @@ export default function SignupPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setError("");
+    clearError();
+
     if (!firstName.trim()) {
       setError("Please enter your first name");
       return;
@@ -41,9 +44,11 @@ export default function SignupPage() {
       setError("Passwords do not match");
       return;
     }
-    setError("");
-    updateAuth(email.trim(), password, firstName.trim(), lastName.trim());
-    router.push("/verify-email");
+
+    const success = await registerUser(email.trim(), password, firstName.trim(), lastName.trim());
+    if (success) {
+      router.push("/verify-email");
+    }
   };
 
   return (
@@ -136,11 +141,11 @@ export default function SignupPage() {
                 </div>
               </div>
 
-              {error && <p className="text-sm text-danger">{error}</p>}
+              {(error || apiError) && <p className="rounded-md bg-red-50 border border-red-200 p-3 text-sm text-red-600 font-medium">{error || apiError}</p>}
 
-              <Button type="submit" variant="gradient" className="w-full justify-center gap-2">
-                Start verification
-                <ArrowRight className="h-4 w-4" />
+              <Button type="submit" variant="gradient" className="w-full justify-center gap-2" disabled={loading}>
+                {loading ? "Creating account..." : "Start verification"}
+                {!loading && <ArrowRight className="h-4 w-4" />}
               </Button>
 
               <div className="text-sm text-center text-muted-foreground">
