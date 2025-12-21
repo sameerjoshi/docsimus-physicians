@@ -8,7 +8,7 @@ import { Home, Calendar, Users, DollarSign, Settings, Bell, Video, Zap, Clock, C
 export function DoctorDashboard() {
   const router = useRouter();
   const pathname = usePathname();
-  const { state, isAuthenticated } = useOnboarding();
+  const { state } = useOnboarding();
   const [isHydrated, setIsHydrated] = useState(false);
 
   useEffect(() => {
@@ -16,11 +16,6 @@ export function DoctorDashboard() {
   }, []);
 
   if (!isHydrated) {
-    return null;
-  }
-
-  if (!isAuthenticated) {
-    router.push("/login");
     return null;
   }
 
@@ -73,7 +68,7 @@ export function DoctorDashboard() {
             })}
           </div>
           <div style={styles.navRight}>
-            <button style={styles.notificationIcon} onClick={() => {}}>
+            <button style={styles.notificationIcon} onClick={() => { }}>
               <Bell size={20} />
             </button>
             <button
@@ -137,7 +132,7 @@ export function DoctorDashboard() {
                   <span style={styles.calendarMonth}>August 2024</span>
                   <button style={styles.calendarNav}>&gt;</button>
                 </div>
-                
+
                 {/* Day headers */}
                 <div style={styles.calendarDayHeaders}>
                   {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
@@ -148,8 +143,8 @@ export function DoctorDashboard() {
                 {/* Calendar days */}
                 <div style={styles.calendarDays}>
                   {[17, 18, 19, 20, 21, 22, 23].map((day) => (
-                    <button 
-                      key={day} 
+                    <button
+                      key={day}
                       style={{
                         ...styles.calendarDay,
                         ...(day === 21 ? styles.calendarDaySelected : {})
@@ -164,7 +159,7 @@ export function DoctorDashboard() {
                 {/* Toggle buttons */}
                 <div style={styles.calendarToggleButtons}>
                   <button style={styles.toggleButton}>Month</button>
-                  <button style={{...styles.toggleButton, ...styles.toggleButtonActive}}>Week</button>
+                  <button style={{ ...styles.toggleButton, ...styles.toggleButtonActive }}>Week</button>
                   <button style={styles.toggleButton}>Block Time</button>
                 </div>
               </div>
@@ -318,23 +313,23 @@ export function DoctorDashboard() {
           <div style={styles.card}>
             <h3 style={styles.cardTitle}>Quick Actions</h3>
             <div style={styles.quickActionsGrid}>
-              <button style={{...styles.quickActionButton, ...styles.quickActionButtonPrimary}} onClick={() => navigateTo("/dashboard")}>
+              <button style={{ ...styles.quickActionButton, ...styles.quickActionButtonPrimary }} onClick={() => navigateTo("/dashboard")}>
                 <Video size={20} />
                 Start Instant Consultation
               </button>
-              <button style={{...styles.quickActionButton, ...styles.quickActionButtonSecondary}} onClick={() => navigateTo("/schedule")}>
+              <button style={{ ...styles.quickActionButton, ...styles.quickActionButtonSecondary }} onClick={() => navigateTo("/schedule")}>
                 <Calendar size={20} />
                 View Schedule
               </button>
-              <button style={{...styles.quickActionButton, ...styles.quickActionButtonSecondary}} onClick={() => navigateTo("/patients")}>
+              <button style={{ ...styles.quickActionButton, ...styles.quickActionButtonSecondary }} onClick={() => navigateTo("/patients")}>
                 <Users size={20} />
                 View Patients
               </button>
-              <button style={{...styles.quickActionButton, ...styles.quickActionButtonSecondary}} onClick={() => navigateTo("/earnings")}>
+              <button style={{ ...styles.quickActionButton, ...styles.quickActionButtonSecondary }} onClick={() => navigateTo("/earnings")}>
                 <DollarSign size={20} />
                 Schedule Payment
               </button>
-              <button style={{...styles.quickActionButton, ...styles.quickActionButtonSecondary}} onClick={() => navigateTo("/settings")}>
+              <button style={{ ...styles.quickActionButton, ...styles.quickActionButtonSecondary }} onClick={() => navigateTo("/settings")}>
                 <Settings size={20} />
                 Settings
               </button>
