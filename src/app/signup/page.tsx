@@ -139,7 +139,7 @@ export default function SignupPage() {
               {error && <p className="text-sm text-danger">{error}</p>}
 
               <Button type="submit" variant="gradient" className="w-full justify-center gap-2">
-                Start verification
+                Create account
                 <ArrowRight className="h-4 w-4" />
               </Button>
 

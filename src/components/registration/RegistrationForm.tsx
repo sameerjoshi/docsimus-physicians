@@ -761,7 +761,7 @@ export function RegistrationForm() {
                 onClick={handleNext}
                 className="px-8 bg-teal-500 hover:bg-teal-600 text-white"
               >
-                Submit & Review
+                Review and Submit
               </Button>
             </div>
           </div>
