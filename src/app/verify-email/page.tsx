@@ -35,9 +35,9 @@ export default function VerifyEmailPage() {
     const verificationTimeout = setTimeout(() => {
       setIsVerified(true);
       setIsVerifying(false);
-      // Auto-redirect after 2 seconds to onboarding
+      // Auto-redirect after 2 seconds to registration
       const redirectTimeout = setTimeout(() => {
-        router.push("/onboarding");
+        router.push("/registration");
       }, 2000);
       return () => clearTimeout(redirectTimeout);
     }, 1500);
@@ -87,7 +87,7 @@ export default function VerifyEmailPage() {
                 size="lg"
                 variant="gradient"
                 className="w-full justify-center"
-                onClick={() => router.push("/onboarding")}
+                onClick={() => router.push("/registration")}
               >
                 Continue to Registration
               </Button>

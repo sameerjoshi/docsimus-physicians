@@ -69,7 +69,7 @@ export default function ProfilePage() {
         <div style={styles.divider}></div>
 
         <div style={styles.actions}>
-          <button style={styles.editButton} onClick={() => router.push("/onboarding/personal")}>
+          <button style={styles.editButton} onClick={() => router.push("/registration")}>
             Edit Profile
           </button>
           <button style={styles.logoutButton} onClick={() => {

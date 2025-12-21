@@ -21,37 +21,37 @@ const nextConfig: NextConfig = {
       },
       {
         source: "/doctor-onboarding-new",
-        destination: "/onboarding",
+        destination: "/registration",
         permanent: true,
       },
       {
         source: "/doctor-onboarding-new/personal",
-        destination: "/onboarding/personal",
+        destination: "/registration",
         permanent: true,
       },
       {
         source: "/doctor-onboarding-new/address",
-        destination: "/onboarding/address",
+        destination: "/registration",
         permanent: true,
       },
       {
         source: "/doctor-onboarding-new/medical",
-        destination: "/onboarding/medical",
+        destination: "/registration",
         permanent: true,
       },
       {
         source: "/doctor-onboarding-new/documents",
-        destination: "/onboarding/documents",
+        destination: "/registration",
         permanent: true,
       },
       {
         source: "/doctor-onboarding-new/availability",
-        destination: "/onboarding/availability",
+        destination: "/registration",
         permanent: true,
       },
       {
         source: "/doctor-onboarding-new/review",
-        destination: "/onboarding/review",
+        destination: "/registration",
         permanent: true,
       },
       // Old doctor dashboard routes → new routes
