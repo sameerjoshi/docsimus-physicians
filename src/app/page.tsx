@@ -1,8 +1,8 @@
 "use client";
 
+import Image from "next/image";
 import { Button, Card, CardContent } from "@/src/components/ui";
 import {
-  Stethoscope,
   DollarSign,
   Calendar,
   Video,
@@ -63,9 +63,14 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-2">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full primary-gradient">
-                <Stethoscope className="h-5 w-5 text-white" />
-              </div>
+              <Image
+                src="/favicon.png"
+                alt="Docsimus logo"
+                width={36}
+                height={36}
+                className="h-9 w-9 object-contain"
+                priority
+              />
               <span className="text-xl font-bold">
                 <span className="gradient-text">Docsimus</span>
               </span>
@@ -295,9 +300,13 @@ export default function Home() {
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full primary-gradient">
-                <Stethoscope className="h-4 w-4 text-white" />
-              </div>
+              <Image
+                src="/favicon.png"
+                alt="Docsimus logo"
+                width={32}
+                height={32}
+                className="h-8 w-8 object-contain"
+              />
               <span className="font-semibold">Docsimus Physicians</span>
             </div>
             <div className="flex items-center gap-6 text-sm text-muted-foreground">
