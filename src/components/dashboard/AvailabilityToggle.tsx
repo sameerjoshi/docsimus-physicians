@@ -1,14 +1,20 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card } from '@/src/components/ui/card';
 
 interface AvailabilityToggleProps {
+    initialAvailable?: boolean;
     onToggle?: (available: boolean) => void;
 }
 
-export function AvailabilityToggle({ onToggle }: AvailabilityToggleProps) {
-    const [isAvailable, setIsAvailable] = useState(false);
+export function AvailabilityToggle({ initialAvailable = false, onToggle }: AvailabilityToggleProps) {
+    const [isAvailable, setIsAvailable] = useState(initialAvailable);
+
+    // Sync with external state changes
+    useEffect(() => {
+        setIsAvailable(initialAvailable);
+    }, [initialAvailable]);
 
     const handleToggle = () => {
         const newState = !isAvailable;
@@ -35,8 +41,8 @@ export function AvailabilityToggle({ onToggle }: AvailabilityToggleProps) {
                     <button
                         onClick={handleToggle}
                         className={`relative w-full p-4 rounded-lg border-2 transition-all duration-300 ${isAvailable
-                                ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
-                                : 'border-border bg-muted/30'
+                            ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
+                            : 'border-border bg-muted/30'
                             }`}
                     >
                         <div className="flex items-center justify-between">

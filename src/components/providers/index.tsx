@@ -2,6 +2,8 @@
 
 import { QueryProvider } from "./query";
 import { ThemeProvider } from "./theme";
+import { ConsultationProvider } from "./consultation";
+import { IncomingRequestPopup } from "../consultations/IncomingRequestPopup";
 import { Toaster } from "sonner";
 
 export type ProviderProps = {
@@ -13,7 +15,10 @@ const Providers = ({ children }: ProviderProps) => {
         <>
             <ThemeProvider>
                 <QueryProvider>
-                    {children}
+                    <ConsultationProvider>
+                        {children}
+                        <IncomingRequestPopup />
+                    </ConsultationProvider>
                     <Toaster
                         position="top-center"
                         duration={1500}

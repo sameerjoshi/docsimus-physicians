@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { doctorService } from '@/src/services/doctor.service';
+import { useAppointments } from '@/src/hooks/useAppointments';
 import { AppHeader } from '@/src/components/layout/app-header';
 import { Card } from '@/src/components/ui/card';
 import { Button } from '@/src/components/ui/button';
@@ -13,12 +14,12 @@ import {
   Video, CheckCircle, TrendingUp, AlertCircle
 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { fadeInUp, staggerContainer, staggerItem } from '@/src/lib/animations';
+import { staggerContainer, staggerItem } from '@/src/lib/animations';
 
 export default function DashboardPage() {
   const router = useRouter();
   const [profile, setProfile] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [profileLoading, setProfileLoading] = useState(true);
   const [stats, setStats] = useState({
     totalPatients: 0,
     appointmentsToday: 0,
@@ -26,31 +27,53 @@ export default function DashboardPage() {
     monthlyEarnings: 0,
   });
 
+  // Use appointments hook for real data
+  const {
+    todayAppointments,
+    isLoading: appointmentsLoading,
+    isAvailableNow,
+    fetchTodayAppointments,
+    fetchAvailability,
+    confirmAppointment,
+    completeAppointment,
+    toggleAvailability,
+  } = useAppointments();
+
   useEffect(() => {
     loadDashboardData();
   }, []);
 
   const loadDashboardData = async () => {
     try {
-      setLoading(true);
-      const profileData = await doctorService.getProfile();
+      setProfileLoading(true);
+
+      // Load profile and appointments in parallel
+      const [profileData] = await Promise.all([
+        doctorService.getProfile(),
+        fetchTodayAppointments(),
+        fetchAvailability(),
+      ]);
+
       setProfile(profileData);
 
-      // Mock stats - replace with actual API calls
-      setStats({
-        totalPatients: 42,
-        appointmentsToday: 5,
-        upcomingAppointments: 12,
-        monthlyEarnings: 45000,
-      });
+      // Stats - totalPatients and monthlyEarnings would come from a separate API
+      // appointmentsToday will be derived from todayAppointments
+      setStats(prev => ({
+        ...prev,
+        totalPatients: 42, // TODO: Replace with actual API
+        upcomingAppointments: 12, // TODO: Replace with actual API
+        monthlyEarnings: 45000, // TODO: Replace with actual API
+      }));
     } catch (error) {
       console.error('Failed to load dashboard:', error);
     } finally {
-      setLoading(false);
+      setProfileLoading(false);
     }
   };
 
-  if (loading) {
+  const loading = profileLoading || appointmentsLoading;
+
+  if (profileLoading) {
     return (
       <>
         <AppHeader />
@@ -63,6 +86,9 @@ export default function DashboardPage() {
 
   const isPending = profile?.status === 'PENDING' || profile?.status === 'pending';
 
+  // Calculate pending appointments count
+  const pendingCount = todayAppointments.filter(apt => apt.status === 'PENDING').length;
+
   const statCards = [
     {
       title: 'Total Patients',
@@ -74,11 +100,11 @@ export default function DashboardPage() {
     },
     {
       title: 'Appointments Today',
-      value: stats.appointmentsToday,
+      value: todayAppointments.length,
       icon: Calendar,
       color: 'text-green-600',
       bgColor: 'bg-green-500/10',
-      change: '3 pending',
+      change: pendingCount > 0 ? `${pendingCount} pending` : 'All confirmed',
     },
     {
       title: 'Upcoming',
@@ -98,11 +124,18 @@ export default function DashboardPage() {
     },
   ];
 
-  const upcomingAppointments = [
-    { id: 1, patient: 'Rajesh Kumar', time: '10:00 AM', type: 'Video Call', status: 'confirmed' },
-    { id: 2, patient: 'Priya Sharma', time: '11:30 AM', type: 'Video Call', status: 'confirmed' },
-    { id: 3, patient: 'Amit Patel', time: '02:00 PM', type: 'Video Call', status: 'pending' },
-  ];
+  // Handle appointment actions
+  const handleConfirmAppointment = async (id: string) => {
+    await confirmAppointment(id);
+  };
+
+  const handleCompleteAppointment = async (id: string) => {
+    await completeAppointment(id);
+  };
+
+  const handleAvailabilityToggle = async (available: boolean) => {
+    await toggleAvailability(available);
+  };
 
   return (
     <>
@@ -197,13 +230,13 @@ export default function DashboardPage() {
                 </div>
 
                 <div className="space-y-3 sm:space-y-4">
-                  {upcomingAppointments.length === 0 ? (
+                  {todayAppointments.length === 0 ? (
                     <div className="text-center py-8 sm:py-12 text-muted-foreground">
                       <Clock className="h-12 w-12 mx-auto mb-3 opacity-30" />
                       <p>No appointments scheduled for today</p>
                     </div>
                   ) : (
-                    upcomingAppointments.map((appointment) => (
+                    todayAppointments.map((appointment) => (
                       <div
                         key={appointment.id}
                         className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 border border-border rounded-lg hover:bg-accent/50 transition-colors gap-3 sm:gap-0"
@@ -214,32 +247,48 @@ export default function DashboardPage() {
                           </div>
                           <div className="min-w-0 flex-1">
                             <p className="font-medium text-foreground truncate">
-                              {appointment.patient}
+                              {appointment.patient?.name || 'Patient'}
                             </p>
                             <p className="text-sm text-muted-foreground flex items-center gap-2 flex-wrap">
                               <Clock className="h-3 w-3" />
-                              {appointment.time}
+                              {new Date(appointment.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                               <span className="hidden sm:inline">•</span>
                               <Video className="h-3 w-3" />
-                              {appointment.type}
+                              {appointment.type || 'Video Call'}
                             </p>
                           </div>
                         </div>
                         <div className="flex items-center gap-2 sm:ml-4">
-                          {appointment.status === 'confirmed' ? (
+                          {appointment.status === 'CONFIRMED' ? (
                             <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-600 text-white rounded-full text-xs font-medium">
                               <CheckCircle className="h-3 w-3" />
                               Confirmed
                             </span>
+                          ) : appointment.status === 'PENDING' ? (
+                            <>
+                              <span className="inline-flex items-center gap-1 px-2 py-1 bg-amber-600 text-white rounded-full text-xs font-medium">
+                                <Clock className="h-3 w-3" />
+                                Pending
+                              </span>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleConfirmAppointment(appointment.id)}
+                                className="flex-shrink-0"
+                              >
+                                Confirm
+                              </Button>
+                            </>
                           ) : (
-                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-amber-600 text-white rounded-full text-xs font-medium">
-                              <Clock className="h-3 w-3" />
-                              Pending
+                            <span className="inline-flex items-center gap-1 px-2 py-1 bg-gray-600 text-white rounded-full text-xs font-medium">
+                              {appointment.status}
                             </span>
                           )}
-                          <Button size="sm" className="flex-shrink-0">
-                            Join Call
-                          </Button>
+                          {appointment.status === 'CONFIRMED' && (
+                            <Button size="sm" className="flex-shrink-0">
+                              Join Call
+                            </Button>
+                          )}
                         </div>
                       </div>
                     ))
@@ -263,7 +312,10 @@ export default function DashboardPage() {
 
               {/* Availability Toggle */}
               <div className="mt-6">
-                <AvailabilityToggle onToggle={(available) => console.log('Availability:', available)} />
+                <AvailabilityToggle
+                  initialAvailable={isAvailableNow}
+                  onToggle={handleAvailabilityToggle}
+                />
               </div>
             </motion.div>
           </div>

@@ -1,36 +1,89 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { AppHeader } from '@/src/components/layout/app-header';
 import { Card } from '@/src/components/ui/card';
 import { Button } from '@/src/components/ui/button';
 import { Badge } from '@/src/components/ui/badge';
+import { Label } from '@/src/components/ui/label';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/src/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/src/components/ui/select';
 import {
   Calendar, Clock, ChevronLeft, ChevronRight,
-  Plus, Video, Users, CheckCircle, X
+  Plus, Video, CheckCircle, X, Loader2,
+  Bell, Trash2, ToggleLeft, ToggleRight
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { staggerContainer, staggerItem } from '@/src/lib/animations';
+import { useAppointments } from '@/src/hooks/useAppointments';
+import { Appointment, CreateTimeSlotPayload } from '@/src/services/appointments.service';
 
 export default function SchedulePage() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState<'week' | 'day'>('week');
 
+  // Modal states
+  const [showAddSlotDialog, setShowAddSlotDialog] = useState(false);
+  const [showAppointmentDialog, setShowAppointmentDialog] = useState(false);
+  const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
+
+  // New time slot form
+  const [newSlot, setNewSlot] = useState<CreateTimeSlotPayload>({
+    dayOfWeek: 1,
+    startTime: '09:00',
+    endTime: '17:00',
+    isRecurring: true,
+  });
+
+  const {
+    appointments,
+    todayAppointments,
+    timeSlots,
+    pendingRequests,
+    isAvailableNow,
+    isLoading,
+    fetchWeekAppointments,
+    fetchTodayAppointments,
+    fetchTimeSlots,
+    fetchPendingRequests,
+    fetchAvailability,
+    createTimeSlot,
+    deleteTimeSlot,
+    confirmAppointment,
+    completeAppointment,
+    toggleAvailability,
+    acceptRequest,
+    rejectRequest,
+  } = useAppointments();
+
   const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  const timeSlots = Array.from({ length: 13 }, (_, i) => `${i + 9}:00`);
+  const daysOfWeekFull = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const timeSlotOptions = Array.from({ length: 24 }, (_, i) =>
+    `${i.toString().padStart(2, '0')}:00`
+  );
 
-  // Mock appointments
-  const appointments = [
-    { id: 1, patient: 'Rajesh Kumar', time: '10:00', duration: 30, type: 'video', status: 'confirmed', day: 2 },
-    { id: 2, patient: 'Priya Sharma', time: '11:30', duration: 30, type: 'video', status: 'confirmed', day: 2 },
-    { id: 3, patient: 'Amit Patel', time: '14:00', duration: 30, type: 'video', status: 'pending', day: 3 },
-  ];
-
-  const todayAppointments = [
-    { id: 1, patient: 'Rajesh Kumar', time: '10:00 AM', type: 'Video Call', status: 'confirmed' },
-    { id: 2, patient: 'Priya Sharma', time: '11:30 AM', type: 'Video Call', status: 'confirmed' },
-    { id: 3, patient: 'Amit Patel', time: '02:00 PM', type: 'Video Call', status: 'pending' },
-  ];
+  // Fetch data on mount and when week changes
+  useEffect(() => {
+    const weekStart = getWeekDates()[0];
+    fetchWeekAppointments(weekStart);
+    fetchTodayAppointments();
+    fetchTimeSlots();
+    fetchPendingRequests();
+    fetchAvailability();
+  }, [currentDate]);
 
   const previousWeek = () => {
     const newDate = new Date(currentDate);
@@ -59,6 +112,84 @@ export default function SchedulePage() {
 
   const weekDates = getWeekDates();
 
+  // Group appointments by day and time
+  const appointmentsByDayAndTime = useMemo(() => {
+    const grouped: Record<number, Record<string, Appointment[]>> = {};
+
+    appointments.forEach(apt => {
+      const date = new Date(apt.scheduledAt);
+      const dayOfWeek = date.getDay();
+      const hour = date.getHours().toString().padStart(2, '0');
+
+      if (!grouped[dayOfWeek]) grouped[dayOfWeek] = {};
+      if (!grouped[dayOfWeek][hour]) grouped[dayOfWeek][hour] = [];
+      grouped[dayOfWeek][hour].push(apt);
+    });
+
+    return grouped;
+  }, [appointments]);
+
+  // Get display hours (9 AM to 9 PM)
+  const displayHours = Array.from({ length: 13 }, (_, i) => i + 9);
+
+  const handleAddTimeSlot = async () => {
+    const success = await createTimeSlot(newSlot);
+    if (success) {
+      setShowAddSlotDialog(false);
+      setNewSlot({
+        dayOfWeek: 1,
+        startTime: '09:00',
+        endTime: '17:00',
+        isRecurring: true,
+      });
+    }
+  };
+
+  const handleToggleAvailability = async () => {
+    await toggleAvailability(!isAvailableNow);
+  };
+
+  const handleConfirmAppointment = async (id: string) => {
+    await confirmAppointment(id);
+  };
+
+  const handleCompleteAppointment = async (id: string) => {
+    await completeAppointment(id);
+    setShowAppointmentDialog(false);
+    setSelectedAppointment(null);
+  };
+
+  const handleAcceptInstantRequest = async (requestId: string) => {
+    await acceptRequest(requestId);
+  };
+
+  const handleRejectInstantRequest = async (requestId: string) => {
+    await rejectRequest(requestId);
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'CONFIRMED':
+        return <Badge className="bg-green-600 text-white"><CheckCircle className="h-3 w-3 mr-1" />Confirmed</Badge>;
+      case 'PENDING':
+        return <Badge className="bg-amber-600 text-white"><Clock className="h-3 w-3 mr-1" />Pending</Badge>;
+      case 'COMPLETED':
+        return <Badge className="bg-blue-600 text-white"><CheckCircle className="h-3 w-3 mr-1" />Completed</Badge>;
+      case 'CANCELLED':
+        return <Badge className="bg-red-600 text-white"><X className="h-3 w-3 mr-1" />Cancelled</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
+  };
+
+  const formatTime = (dateString: string) => {
+    return new Date(dateString).toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+  };
+
   return (
     <>
       <AppHeader />
@@ -71,9 +202,72 @@ export default function SchedulePage() {
         >
           {/* Header */}
           <motion.div variants={staggerItem} className="mb-6">
-            <h1 className="text-2xl sm:text-3xl font-bold mb-2">Schedule</h1>
-            <p className="text-sm sm:text-base text-muted-foreground">Manage your appointments and availability</p>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-bold mb-2">Schedule</h1>
+                <p className="text-sm sm:text-base text-muted-foreground">Manage your appointments and availability</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <Button
+                  variant={isAvailableNow ? "default" : "outline"}
+                  onClick={handleToggleAvailability}
+                  disabled={isLoading}
+                >
+                  {isAvailableNow ? (
+                    <><ToggleRight className="h-4 w-4 mr-2" />Available Now</>
+                  ) : (
+                    <><ToggleLeft className="h-4 w-4 mr-2" />Set Available</>
+                  )}
+                </Button>
+              </div>
+            </div>
           </motion.div>
+
+          {/* Pending Instant Requests */}
+          {pendingRequests.length > 0 && (
+            <motion.div variants={staggerItem} className="mb-6">
+              <Card className="p-4 border-amber-500 bg-amber-50 dark:bg-amber-950/20">
+                <div className="flex items-center gap-2 mb-3">
+                  <Bell className="h-5 w-5 text-amber-600" />
+                  <h3 className="font-semibold text-amber-800 dark:text-amber-200">
+                    Instant Consultation Requests ({pendingRequests.length})
+                  </h3>
+                </div>
+                <div className="space-y-3">
+                  {pendingRequests.map((request) => (
+                    <div key={request.id} className="flex items-center justify-between p-3 bg-background rounded-lg border">
+                      <div>
+                        <p className="font-medium">{request.patient?.name || 'Patient'}</p>
+                        {request.reason && (
+                          <p className="text-sm text-muted-foreground">{request.reason}</p>
+                        )}
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Expires: {new Date(request.expiresAt).toLocaleTimeString()}
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          onClick={() => handleAcceptInstantRequest(request.id)}
+                          disabled={isLoading}
+                        >
+                          Accept
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleRejectInstantRequest(request.id)}
+                          disabled={isLoading}
+                        >
+                          Decline
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            </motion.div>
+          )}
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Calendar View */}
@@ -110,56 +304,77 @@ export default function SchedulePage() {
                   </div>
                 </div>
 
-                {/* Calendar Grid - Desktop */}
-                <div className="hidden md:block overflow-x-auto">
-                  <div className="min-w-[600px]">
-                    {/* Days Header */}
-                    <div className="grid grid-cols-8 gap-2 mb-2">
-                      <div className="text-xs font-medium text-muted-foreground"></div>
-                      {weekDates.map((date, i) => (
-                        <div key={i} className="text-center">
-                          <div className="text-xs font-medium text-muted-foreground">{daysOfWeek[i]}</div>
-                          <div className={`text-sm font-semibold mt-1 ${date.toDateString() === new Date().toDateString()
-                            ? 'w-8 h-8 rounded-full bg-primary text-primary-foreground mx-auto flex items-center justify-center'
-                            : ''
-                            }`}>
-                            {date.getDate()}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                {/* Loading State */}
+                {isLoading && (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  </div>
+                )}
 
-                    {/* Time Slots */}
-                    <div className="space-y-2">
-                      {timeSlots.map((time, timeIndex) => (
-                        <div key={time} className="grid grid-cols-8 gap-2">
-                          <div className="text-xs text-muted-foreground pt-2">{time}</div>
-                          {weekDates.map((date, dayIndex) => (
-                            <div
-                              key={`${time}-${dayIndex}`}
-                              className="border border-border rounded-lg p-2 min-h-[60px] hover:bg-accent/50 transition-colors cursor-pointer relative"
-                            >
-                              {appointments
-                                .filter(apt => apt.day === dayIndex && apt.time.startsWith(time.split(':')[0]))
-                                .map(apt => (
-                                  <div
-                                    key={apt.id}
-                                    className={`text-xs p-2 rounded ${apt.status === 'confirmed'
-                                        ? 'bg-green-600 text-white'
-                                        : 'bg-amber-600 text-white'
-                                      }`}
-                                  >
-                                    <p className="font-medium truncate">{apt.patient}</p>
-                                    <p className="text-xs">{apt.time}</p>
-                                  </div>
-                                ))}
+                {/* Calendar Grid - Desktop */}
+                {!isLoading && (
+                  <div className="hidden md:block overflow-x-auto">
+                    <div className="min-w-[600px]">
+                      {/* Days Header */}
+                      <div className="grid grid-cols-8 gap-2 mb-2">
+                        <div className="text-xs font-medium text-muted-foreground"></div>
+                        {weekDates.map((date, i) => (
+                          <div key={i} className="text-center">
+                            <div className="text-xs font-medium text-muted-foreground">{daysOfWeek[i]}</div>
+                            <div className={`text-sm font-semibold mt-1 ${date.toDateString() === new Date().toDateString()
+                              ? 'w-8 h-8 rounded-full bg-primary text-primary-foreground mx-auto flex items-center justify-center'
+                              : ''
+                              }`}>
+                              {date.getDate()}
                             </div>
-                          ))}
-                        </div>
-                      ))}
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Time Slots Grid */}
+                      <div className="space-y-2">
+                        {displayHours.map((hour) => {
+                          const hourStr = hour.toString().padStart(2, '0');
+                          return (
+                            <div key={hour} className="grid grid-cols-8 gap-2">
+                              <div className="text-xs text-muted-foreground pt-2">
+                                {hour > 12 ? `${hour - 12}:00 PM` : hour === 12 ? '12:00 PM' : `${hour}:00 AM`}
+                              </div>
+                              {weekDates.map((date, dayIndex) => {
+                                const dayAppointments = appointmentsByDayAndTime[dayIndex]?.[hourStr] || [];
+                                return (
+                                  <div
+                                    key={`${hour}-${dayIndex}`}
+                                    className="border border-border rounded-lg p-2 min-h-[60px] hover:bg-accent/50 transition-colors cursor-pointer relative"
+                                  >
+                                    {dayAppointments.map((apt) => (
+                                      <div
+                                        key={apt.id}
+                                        onClick={() => {
+                                          setSelectedAppointment(apt);
+                                          setShowAppointmentDialog(true);
+                                        }}
+                                        className={`text-xs p-2 rounded cursor-pointer ${apt.status === 'CONFIRMED'
+                                          ? 'bg-green-600 text-white'
+                                          : apt.status === 'COMPLETED'
+                                            ? 'bg-blue-600 text-white'
+                                            : 'bg-amber-600 text-white'
+                                          }`}
+                                      >
+                                        <p className="font-medium truncate">{apt.patient?.name || 'Patient'}</p>
+                                        <p className="text-xs opacity-90">{formatTime(apt.scheduledAt)}</p>
+                                      </div>
+                                    ))}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
 
                 {/* Calendar Grid - Mobile */}
                 <div className="md:hidden">
@@ -178,11 +393,42 @@ export default function SchedulePage() {
                   </div>
                 </div>
 
-                <Button className="w-full mt-4">
+                <Button className="w-full mt-4" onClick={() => setShowAddSlotDialog(true)}>
                   <Plus className="h-4 w-4 mr-2" />
                   Add Availability
                 </Button>
               </Card>
+
+              {/* Existing Time Slots */}
+              {timeSlots.length > 0 && (
+                <Card className="p-4 sm:p-6">
+                  <h3 className="font-semibold mb-4">Your Availability Slots</h3>
+                  <div className="space-y-2">
+                    {timeSlots.map((slot) => (
+                      <div
+                        key={slot.id}
+                        className="flex items-center justify-between p-3 border rounded-lg"
+                      >
+                        <div>
+                          <p className="font-medium">{daysOfWeekFull[slot.dayOfWeek]}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {slot.startTime} - {slot.endTime}
+                            {slot.isRecurring && <span className="ml-2 text-xs">(Weekly)</span>}
+                          </p>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => deleteTimeSlot(slot.id)}
+                          disabled={isLoading}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              )}
             </motion.div>
 
             {/* Today's Appointments Sidebar */}
@@ -190,7 +436,7 @@ export default function SchedulePage() {
               <Card className="p-4 sm:p-6">
                 <h3 className="font-semibold mb-4 flex items-center gap-2">
                   <Calendar className="h-5 w-5 text-primary" />
-                  Today's Appointments
+                  Today&apos;s Appointments
                 </h3>
                 <div className="space-y-3">
                   {todayAppointments.length === 0 ? (
@@ -202,36 +448,43 @@ export default function SchedulePage() {
                     todayAppointments.map((apt) => (
                       <div
                         key={apt.id}
-                        className="p-3 border border-border rounded-lg hover:bg-accent/50 transition-colors"
+                        className="p-3 border border-border rounded-lg hover:bg-accent/50 transition-colors cursor-pointer"
+                        onClick={() => {
+                          setSelectedAppointment(apt);
+                          setShowAppointmentDialog(true);
+                        }}
                       >
                         <div className="flex items-start justify-between mb-2">
                           <div className="flex-1 min-w-0">
-                            <p className="font-medium truncate">{apt.patient}</p>
+                            <p className="font-medium truncate">{apt.patient?.name || 'Patient'}</p>
                             <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
                               <Clock className="h-3 w-3" />
-                              {apt.time}
+                              {formatTime(apt.scheduledAt)}
                             </p>
                           </div>
-                          {apt.status === 'confirmed' ? (
-                            <Badge className="bg-green-600 text-white">
-                              <CheckCircle className="h-3 w-3 mr-1" />
-                              Confirmed
-                            </Badge>
-                          ) : (
-                            <Badge className="bg-amber-600 text-white">
-                              <Clock className="h-3 w-3 mr-1" />
-                              Pending
-                            </Badge>
-                          )}
+                          {getStatusBadge(apt.status)}
                         </div>
                         <div className="flex gap-2 mt-3">
-                          <Button size="sm" className="flex-1">
-                            <Video className="h-3 w-3 mr-1" />
-                            Join
-                          </Button>
-                          <Button size="sm" variant="outline">
-                            <X className="h-4 w-4" />
-                          </Button>
+                          {apt.status === 'CONFIRMED' && (
+                            <Button size="sm" className="flex-1">
+                              <Video className="h-3 w-3 mr-1" />
+                              Join
+                            </Button>
+                          )}
+                          {apt.status === 'PENDING' && (
+                            <Button
+                              size="sm"
+                              className="flex-1"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleConfirmAppointment(apt.id);
+                              }}
+                              disabled={isLoading}
+                            >
+                              <CheckCircle className="h-3 w-3 mr-1" />
+                              Confirm
+                            </Button>
+                          )}
                         </div>
                       </div>
                     ))
@@ -245,20 +498,50 @@ export default function SchedulePage() {
                 <div className="space-y-4">
                   <div>
                     <div className="flex justify-between text-sm mb-2">
-                      <span className="text-muted-foreground">Appointments</span>
-                      <span className="font-semibold">12</span>
+                      <span className="text-muted-foreground">Total Appointments</span>
+                      <span className="font-semibold">{appointments.length}</span>
                     </div>
                     <div className="h-2 bg-muted rounded-full overflow-hidden">
-                      <div className="h-full bg-primary w-3/4"></div>
+                      <div
+                        className="h-full bg-primary transition-all"
+                        style={{ width: `${Math.min(appointments.length * 10, 100)}%` }}
+                      />
                     </div>
                   </div>
                   <div>
                     <div className="flex justify-between text-sm mb-2">
                       <span className="text-muted-foreground">Completed</span>
-                      <span className="font-semibold">9</span>
+                      <span className="font-semibold">
+                        {appointments.filter(a => a.status === 'COMPLETED').length}
+                      </span>
                     </div>
                     <div className="h-2 bg-muted rounded-full overflow-hidden">
-                      <div className="h-full bg-green-500 w-2/3"></div>
+                      <div
+                        className="h-full bg-green-500 transition-all"
+                        style={{
+                          width: appointments.length
+                            ? `${(appointments.filter(a => a.status === 'COMPLETED').length / appointments.length) * 100}%`
+                            : '0%'
+                        }}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <div className="flex justify-between text-sm mb-2">
+                      <span className="text-muted-foreground">Pending</span>
+                      <span className="font-semibold">
+                        {appointments.filter(a => a.status === 'PENDING').length}
+                      </span>
+                    </div>
+                    <div className="h-2 bg-muted rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-amber-500 transition-all"
+                        style={{
+                          width: appointments.length
+                            ? `${(appointments.filter(a => a.status === 'PENDING').length / appointments.length) * 100}%`
+                            : '0%'
+                        }}
+                      />
                     </div>
                   </div>
                 </div>
@@ -267,6 +550,164 @@ export default function SchedulePage() {
           </div>
         </motion.div>
       </div>
+
+      {/* Add Time Slot Dialog */}
+      <Dialog open={showAddSlotDialog} onOpenChange={setShowAddSlotDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Availability</DialogTitle>
+            <DialogDescription>
+              Set your available time slots for appointments.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Day of Week</Label>
+              <Select
+                value={newSlot.dayOfWeek.toString()}
+                onValueChange={(value) => setNewSlot({ ...newSlot, dayOfWeek: parseInt(value) })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select day" />
+                </SelectTrigger>
+                <SelectContent>
+                  {daysOfWeekFull.map((day, i) => (
+                    <SelectItem key={i} value={i.toString()}>{day}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Start Time</Label>
+                <Select
+                  value={newSlot.startTime}
+                  onValueChange={(value) => setNewSlot({ ...newSlot, startTime: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Start time" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {timeSlotOptions.map((time) => (
+                      <SelectItem key={time} value={time}>{time}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>End Time</Label>
+                <Select
+                  value={newSlot.endTime}
+                  onValueChange={(value) => setNewSlot({ ...newSlot, endTime: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="End time" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {timeSlotOptions.map((time) => (
+                      <SelectItem key={time} value={time}>{time}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="recurring"
+                checked={newSlot.isRecurring}
+                onChange={(e) => setNewSlot({ ...newSlot, isRecurring: e.target.checked })}
+                className="rounded border-gray-300"
+              />
+              <Label htmlFor="recurring">Repeat weekly</Label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAddSlotDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleAddTimeSlot} disabled={isLoading}>
+              {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Add Slot
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Appointment Details Dialog */}
+      <Dialog open={showAppointmentDialog} onOpenChange={setShowAppointmentDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Appointment Details</DialogTitle>
+          </DialogHeader>
+          {selectedAppointment && (
+            <div className="space-y-4 py-4">
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Patient</span>
+                <span className="font-medium">{selectedAppointment.patient?.name || 'Unknown'}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Date & Time</span>
+                <span className="font-medium">
+                  {new Date(selectedAppointment.scheduledAt).toLocaleDateString()} at {formatTime(selectedAppointment.scheduledAt)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Duration</span>
+                <span className="font-medium">{selectedAppointment.duration} mins</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Type</span>
+                <span className="font-medium">{selectedAppointment.type}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Status</span>
+                {getStatusBadge(selectedAppointment.status)}
+              </div>
+              {selectedAppointment.reason && (
+                <div>
+                  <span className="text-muted-foreground">Reason</span>
+                  <p className="mt-1 text-sm">{selectedAppointment.reason}</p>
+                </div>
+              )}
+              {selectedAppointment.symptoms && (
+                <div>
+                  <span className="text-muted-foreground">Symptoms</span>
+                  <p className="mt-1 text-sm">{selectedAppointment.symptoms}</p>
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            {selectedAppointment?.status === 'PENDING' && (
+              <Button
+                onClick={() => handleConfirmAppointment(selectedAppointment.id)}
+                disabled={isLoading}
+              >
+                <CheckCircle className="h-4 w-4 mr-2" />
+                Confirm Appointment
+              </Button>
+            )}
+            {selectedAppointment?.status === 'CONFIRMED' && (
+              <>
+                <Button variant="outline">
+                  <Video className="h-4 w-4 mr-2" />
+                  Start Consultation
+                </Button>
+                <Button
+                  onClick={() => handleCompleteAppointment(selectedAppointment.id)}
+                  disabled={isLoading}
+                >
+                  Mark Complete
+                </Button>
+              </>
+            )}
+            <Button variant="outline" onClick={() => setShowAppointmentDialog(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
