@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Input, Button } from "@/src/components/ui";
 import { useOnboarding } from "@/src/hooks/useOnboarding";
 import { motion } from "framer-motion";
 import { fadeInUp } from "@/src/lib/animations";
 import { Plus } from "lucide-react";
+import { DocumentType } from "@/src/types/onboarding";
 
 interface Step {
   number: number;
@@ -15,7 +16,7 @@ interface Step {
 
 export function RegistrationForm() {
   const router = useRouter();
-  const { state, updateProfile } = useOnboarding();
+  const { state, updateProfile, updateDocument } = useOnboarding();
   const [currentStep, setCurrentStep] = useState(1);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -24,6 +25,69 @@ export function RegistrationForm() {
   const [countryCode, setCountryCode] = useState("+1 (US)");
   const [gender, setGender] = useState("");
   const [dob, setDob] = useState("");
+  const [uploadErrors, setUploadErrors] = useState<Partial<Record<DocumentType, string>>>({});
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [specialization, setSpecialization] = useState("");
+  const [experience, setExperience] = useState("");
+  const [medicalCouncil, setMedicalCouncil] = useState("");
+  const [registrationNumber, setRegistrationNumber] = useState("");
+  const [licenseNumber, setLicenseNumber] = useState("");
+
+  const documentConfigs: {
+    key: DocumentType;
+    label: string;
+    description: string;
+    accept: string;
+    allowedMime: string[];
+    allowedExtensions: string[];
+    showPreview: boolean;
+  }[] = [
+    {
+      key: "governmentId",
+      label: "Government ID",
+      description: "PNG, JPG, or PDF",
+      accept: ".png,.jpg,.jpeg,.pdf",
+      allowedMime: ["image/png", "image/jpeg", "application/pdf"],
+      allowedExtensions: ["png", "jpg", "jpeg", "pdf"],
+      showPreview: true,
+    },
+    {
+      key: "medicalDegree",
+      label: "MBBS Certificate",
+      description: "PDF only",
+      accept: ".pdf",
+      allowedMime: ["application/pdf"],
+      allowedExtensions: ["pdf"],
+      showPreview: false,
+    },
+    {
+      key: "registrationCertificate",
+      label: "Medical Registration",
+      description: "PDF only",
+      accept: ".pdf",
+      allowedMime: ["application/pdf"],
+      allowedExtensions: ["pdf"],
+      showPreview: false,
+    },
+    {
+      key: "profilePhoto",
+      label: "Professional Photo",
+      description: "PNG or JPG",
+      accept: ".png,.jpg,.jpeg",
+      allowedMime: ["image/png", "image/jpeg"],
+      allowedExtensions: ["png", "jpg", "jpeg"],
+      showPreview: true,
+    },
+    {
+      key: "introVideo",
+      label: "Video Introduction",
+      description: "Video formats (mp4, mov, webm)",
+      accept: "video/mp4,video/quicktime,video/webm",
+      allowedMime: ["video/mp4", "video/quicktime", "video/webm"],
+      allowedExtensions: ["mp4", "mov", "webm"],
+      showPreview: false,
+    },
+  ];
 
   useEffect(() => {
     setFirstName(state.profile.firstName || "");
@@ -40,8 +104,68 @@ export function RegistrationForm() {
     { number: 4, label: "Availability" },
   ];
 
+  const validateFile = (file: File, config: (typeof documentConfigs)[number]) => {
+    const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
+    return config.allowedMime.includes(file.type) || config.allowedExtensions.includes(ext);
+  };
+
+  const handleFileChange = (config: (typeof documentConfigs)[number]) => (
+    event: ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!validateFile(file, config)) {
+      setUploadErrors((prev) => ({ ...prev, [config.key]: `Invalid file type. Allowed: ${config.description}.` }));
+      return;
+    }
+
+    const previewUrl = config.showPreview ? URL.createObjectURL(file) : undefined;
+    updateDocument(config.key, { fileName: file.name, previewUrl });
+    setUploadErrors((prev) => ({ ...prev, [config.key]: "" }));
+  };
+
+  const validateStep1 = (): boolean => {
+    const errors: Record<string, string> = {};
+    
+    if (!firstName.trim() || !lastName.trim()) errors.fullName = "Full name is required";
+    if (!phone.trim()) errors.phone = "Phone number is required";
+    if (!gender) errors.gender = "Gender is required";
+    if (!dob) errors.dob = "Date of birth is required";
+    
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const validateStep2 = (): boolean => {
+    const errors: Record<string, string> = {};
+    
+    if (!medicalCouncil.trim()) errors.medicalCouncil = "Medical council is required";
+    if (!registrationNumber.trim()) errors.registrationNumber = "Registration number is required";
+    if (!licenseNumber.trim()) errors.licenseNumber = "License number is required";
+    
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const validateStep3 = (): boolean => {
+    const errors: Record<string, string> = {};
+    const requiredDocs = ["governmentId", "medicalDegree", "registrationCertificate", "profilePhoto", "introVideo"] as DocumentType[];
+    
+    requiredDocs.forEach((doc) => {
+      if (!state.documents[doc]?.fileName) {
+        errors[doc] = `${documentConfigs.find(d => d.key === doc)?.label} is required`;
+      }
+    });
+    
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   const handleNext = () => {
+    // Validate current step before proceeding
     if (currentStep === 1) {
+      if (!validateStep1()) return;
       updateProfile({
         firstName,
         lastName,
@@ -49,6 +173,14 @@ export function RegistrationForm() {
         dob,
         email,
       });
+    }
+
+    if (currentStep === 2) {
+      if (!validateStep2()) return;
+    }
+
+    if (currentStep === 3) {
+      if (!validateStep3()) return;
     }
 
     if (currentStep < 4) {
@@ -61,6 +193,7 @@ export function RegistrationForm() {
   const handlePrevious = () => {
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
+      setValidationErrors({});
     }
   };
 
@@ -150,7 +283,7 @@ export function RegistrationForm() {
             <div className="grid grid-cols-2 gap-6">
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-gray-900">
-                  Full Name
+                  Full Name <span className="text-red-500">*</span>
                 </label>
                 <Input
                   placeholder="Dr. Jane Doe"
@@ -160,8 +293,11 @@ export function RegistrationForm() {
                     setFirstName(parts[0] || "");
                     setLastName(parts.slice(1).join(" ") || "");
                   }}
-                  className="border border-gray-300"
+                  className={`border ${validationErrors.fullName ? "border-red-500" : "border-gray-300"}`}
                 />
+                {validationErrors.fullName && (
+                  <p className="text-xs text-red-500">{validationErrors.fullName}</p>
+                )}
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-gray-900">
@@ -179,7 +315,7 @@ export function RegistrationForm() {
             {/* Phone Number */}
             <div className="space-y-2">
               <label className="text-sm font-semibold text-gray-900">
-                Phone Number
+                Phone Number <span className="text-red-500">*</span>
               </label>
               <div className="flex gap-2">
                 <select
@@ -196,14 +332,17 @@ export function RegistrationForm() {
                   placeholder="e.g., 555-123-4567"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  className="flex-1 border border-gray-300"
+                  className={`flex-1 border ${validationErrors.phone ? "border-red-500" : "border-gray-300"}`}
                 />
               </div>
+              {validationErrors.phone && (
+                <p className="text-xs text-red-500">{validationErrors.phone}</p>
+              )}
             </div>
 
             {/* Gender */}
             <div className="space-y-2">
-              <label className="text-sm font-semibold text-gray-900">Gender</label>
+              <label className="text-sm font-semibold text-gray-900">Gender <span className="text-red-500">*</span></label>
               <div className="flex gap-2">
                 {["Male", "Female", "Non-binary", "Prefer not to say"].map(
                   (option) => (
@@ -222,17 +361,20 @@ export function RegistrationForm() {
                   )
                 )}
               </div>
+              {validationErrors.gender && (
+                <p className="text-xs text-red-500">{validationErrors.gender}</p>
+              )}
             </div>
 
             {/* Date of Birth */}
             <div className="space-y-2">
               <label className="text-sm font-semibold text-gray-900">
-                Date of Birth Year
+                Date of Birth Year <span className="text-red-500">*</span>
               </label>
               <select
                 value={dob}
                 onChange={(e) => setDob(e.target.value)}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm bg-white"
+                className={`w-full border ${validationErrors.dob ? "border-red-500" : "border-gray-300"} rounded-md px-3 py-2 text-sm bg-white`}
               >
                 <option value="">Select year</option>
                 {Array.from(
@@ -244,6 +386,9 @@ export function RegistrationForm() {
                   </option>
                 ))}
               </select>
+              {validationErrors.dob && (
+                <p className="text-xs text-red-500">{validationErrors.dob}</p>
+              )}
             </div>
 
             {/* Navigation Buttons */}
@@ -305,32 +450,75 @@ export function RegistrationForm() {
             <div className="grid grid-cols-2 gap-6">
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-gray-900">
-                  Medical Council
+                  Medical Council <span className="text-red-500">*</span>
                 </label>
-                <Input
-                  placeholder="e.g., Indian Medical Association"
-                  className="border border-gray-300"
-                />
+                <select
+                  value={medicalCouncil}
+                  onChange={(e) => setMedicalCouncil(e.target.value)}
+                  className={`w-full border ${validationErrors.medicalCouncil ? "border-red-500" : "border-gray-300"} rounded-md px-3 py-2 text-sm bg-white`}
+                >
+                  <option value="">Select Medical Council</option>
+                  <option value="National Medical Commission">National Medical Commission (NMC)</option>
+                  <option value="Andhra Pradesh Medical Council">Andhra Pradesh Medical Council</option>
+                  <option value="Arunachal Pradesh Medical Council">Arunachal Pradesh Medical Council</option>
+                  <option value="Assam Medical Council">Assam Medical Council</option>
+                  <option value="Bihar Medical Council">Bihar Medical Council</option>
+                  <option value="Chhattisgarh Medical Council">Chhattisgarh Medical Council</option>
+                  <option value="Delhi Medical Council">Delhi Medical Council (for NCT of Delhi)</option>
+                  <option value="Goa Medical Council">Goa Medical Council</option>
+                  <option value="Gujarat Medical Council">Gujarat Medical Council</option>
+                  <option value="Haryana Medical Council">Haryana Medical Council</option>
+                  <option value="Himachal Pradesh Medical Council">Himachal Pradesh Medical Council</option>
+                  <option value="Jammu & Kashmir Medical Council">Jammu & Kashmir Medical Council</option>
+                  <option value="Jharkhand Medical Council">Jharkhand Medical Council</option>
+                  <option value="Karnataka Medical Council">Karnataka Medical Council</option>
+                  <option value="Kerala State Medical Council">Kerala State Medical Council</option>
+                  <option value="Madhya Pradesh Medical Council">Madhya Pradesh Medical Council</option>
+                  <option value="Maharashtra Medical Council">Maharashtra Medical Council</option>
+                  <option value="Nagaland Medical Council">Nagaland Medical Council</option>
+                  <option value="Odisha Medical Council">Odisha (Orissa) Medical Council</option>
+                  <option value="Punjab Medical Council">Punjab Medical Council</option>
+                  <option value="Rajasthan Medical Council">Rajasthan Medical Council</option>
+                  <option value="Sikkim Medical Council">Sikkim Medical Council</option>
+                  <option value="Tamil Nadu Medical Council">Tamil Nadu Medical Council</option>
+                  <option value="Telangana State Medical Council">Telangana State Medical Council</option>
+                  <option value="Uttar Pradesh Medical Council">Uttar Pradesh Medical Council</option>
+                  <option value="Uttarakhand Medical Council">Uttarakhand Medical Council</option>
+                  <option value="West Bengal Medical Council">West Bengal Medical Council</option>
+                </select>
+                {validationErrors.medicalCouncil && (
+                  <p className="text-xs text-red-500">{validationErrors.medicalCouncil}</p>
+                )}
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-gray-900">
-                  Registration Number
+                  Registration Number <span className="text-red-500">*</span>
                 </label>
                 <Input
                   placeholder="e.g., MCI123456"
-                  className="border border-gray-300"
+                  value={registrationNumber}
+                  onChange={(e) => setRegistrationNumber(e.target.value)}
+                  className={`border ${validationErrors.registrationNumber ? "border-red-500" : "border-gray-300"}`}
                 />
+                {validationErrors.registrationNumber && (
+                  <p className="text-xs text-red-500">{validationErrors.registrationNumber}</p>
+                )}
               </div>
             </div>
 
             <div className="space-y-2">
               <label className="text-sm font-semibold text-gray-900">
-                License Number
+                License Number <span className="text-red-500">*</span>
               </label>
               <Input
                 placeholder="e.g., LIC789456"
-                className="border border-gray-300"
+                value={licenseNumber}
+                onChange={(e) => setLicenseNumber(e.target.value)}
+                className={`border ${validationErrors.licenseNumber ? "border-red-500" : "border-gray-300"}`}
               />
+              {validationErrors.licenseNumber && (
+                <p className="text-xs text-red-500">{validationErrors.licenseNumber}</p>
+              )}
             </div>
 
             <div className="flex gap-3 pt-4 justify-between">
@@ -364,17 +552,45 @@ export function RegistrationForm() {
             </div>
 
             <div className="space-y-4">
-              {["Government ID", "MBBS Certificate", "Medical Registration", "Professional Photo", "Video Introduction"].map(
-                (doc) => (
-                  <div key={doc} className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-teal-500 transition-colors cursor-pointer">
-                    <div className="flex flex-col items-center gap-2">
+              {documentConfigs.map((doc) => {
+                const documentState = state.documents[doc.key];
+                const hasError = validationErrors[doc.key];
+
+                return (
+                  <div
+                    key={doc.key}
+                    className={`border-2 border-dashed rounded-lg p-6 hover:border-teal-500 transition-colors ${
+                      hasError ? "border-red-300 bg-red-50" : "border-gray-300"
+                    }`}
+                  >
+                    <label htmlFor={`upload-${doc.key}`} className="flex flex-col items-center gap-2 cursor-pointer text-center">
                       <div className="text-3xl">📄</div>
-                      <p className="text-sm font-medium text-gray-900">{doc}</p>
-                      <p className="text-xs text-gray-500">Click to upload or drag & drop</p>
-                    </div>
+                      <p className="text-sm font-medium text-gray-900">
+                        {doc.label} <span className="text-red-500">*</span>
+                      </p>
+                      <p className="text-xs text-gray-500">{doc.description}</p>
+                      <p className="text-xs text-gray-500">
+                        {documentState?.fileName
+                          ? `✓ Selected: ${documentState.fileName}`
+                          : "Click to upload or drag & drop"}
+                      </p>
+                    </label>
+                    <input
+                      id={`upload-${doc.key}`}
+                      type="file"
+                      accept={doc.accept}
+                      className="hidden"
+                      onChange={handleFileChange(doc)}
+                    />
+                    {uploadErrors[doc.key] && (
+                      <p className="mt-2 text-xs text-red-500">{uploadErrors[doc.key]}</p>
+                    )}
+                    {hasError && (
+                      <p className="mt-2 text-xs text-red-500">{hasError}</p>
+                    )}
                   </div>
-                )
-              )}
+                );
+              })}
             </div>
 
             <div className="flex gap-3 pt-4 justify-between">
