@@ -1,39 +1,111 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from "next/link";
 import { ArrowUpRight, ClipboardList, ShieldCheck, Users, UserCheck } from "lucide-react";
 import { Button, Card, CardContent } from "@/src/components/ui";
 import { ApplicationHeader } from "@/src/components/admin/ApplicationHeader";
 import { SectionCard } from "@/src/components/admin/SectionCard";
-
-const highlights = [
-    {
-        label: "Pending Assignment",
-        value: "12",
-        icon: ClipboardList,
-        tone: "bg-amber-100 text-amber-700",
-    },
-    {
-        label: "Under Review",
-        value: "8",
-        icon: UserCheck,
-        tone: "bg-blue-100 text-blue-700",
-    },
-    {
-        label: "Verified This Week",
-        value: "42",
-        icon: ShieldCheck,
-        tone: "bg-green-100 text-green-700",
-    },
-    {
-        label: "Active Reviewers",
-        value: "5",
-        icon: Users,
-        tone: "bg-purple-100 text-purple-700",
-    },
-];
+import { adminService, type AdminDoctorApplication, type Reviewer } from "@/src/services/admin.service";
+import { LoadingSpinner } from "@/src/components/loading-spinner";
 
 export default function AdminPage() {
+    const [pendingApplications, setPendingApplications] = useState<AdminDoctorApplication[]>([]);
+    const [reviewers, setReviewers] = useState<Reviewer[]>([]);
+    const [allApplications, setAllApplications] = useState<AdminDoctorApplication[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        loadDashboardData();
+    }, []);
+
+    const loadDashboardData = async () => {
+        try {
+            setLoading(true);
+            const [pending, allApps, reviewerList] = await Promise.all([
+                adminService.getPendingApplications(),
+                adminService.getAllApplications(),
+                adminService.getReviewers(),
+            ]);
+
+            setPendingApplications(pending);
+            setAllApplications(allApps);
+            setReviewers(reviewerList);
+        } catch (err: any) {
+            console.error('Failed to load dashboard data:', err);
+            setError(err.message || 'Failed to load dashboard data');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center min-h-screen">
+                <LoadingSpinner size="lg" />
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="p-8">
+                <Card className="p-6 bg-red-50 border-red-200">
+                    <p className="text-red-700">{error}</p>
+                    <Button onClick={loadDashboardData} className="mt-4">
+                        Retry
+                    </Button>
+                </Card>
+            </div>
+        );
+    }
+
+    const unassignedCount = pendingApplications.filter(app => !app.reviewerId).length;
+    const underReviewCount = allApplications.filter(app => app.status === 'PENDING' && app.reviewerId).length;
+    const verifiedThisWeek = allApplications.filter(app => {
+        if (!app.verifiedAt) return false;
+        const verifiedDate = new Date(app.verifiedAt);
+        const weekAgo = new Date();
+        weekAgo.setDate(weekAgo.getDate() - 7);
+        return verifiedDate >= weekAgo;
+    }).length;
+
+    const highlights = [
+        {
+            label: "Pending Assignment",
+            value: unassignedCount.toString(),
+            icon: ClipboardList,
+            tone: "bg-amber-100 text-amber-700",
+        },
+        {
+            label: "Under Review",
+            value: underReviewCount.toString(),
+            icon: UserCheck,
+            tone: "bg-blue-100 text-blue-700",
+        },
+        {
+            label: "Verified This Week",
+            value: verifiedThisWeek.toString(),
+            icon: ShieldCheck,
+            tone: "bg-green-100 text-green-700",
+        },
+        {
+            label: "Active Reviewers",
+            value: reviewers.length.toString(),
+            icon: Users,
+            tone: "bg-purple-100 text-purple-700",
+        },
+    ];
+
+    // Get recent pending applications (limit to 2)
+    const recentPending = pendingApplications.filter(app => !app.reviewerId).slice(0, 2);
+
+    // Get active reviewers (those with assignments)
+    const activeReviewers = reviewers
+        .filter(r => (r._count?.reviewingApplications || 0) > 0)
+        .slice(0, 2);
+
     return (
         <div className="space-y-6 sm:space-y-8">
             <ApplicationHeader
@@ -73,20 +145,21 @@ export default function AdminPage() {
                     )}
                 >
                     <div className="space-y-3">
-                        <div className="flex items-center justify-between p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
-                            <div>
-                                <p className="font-medium text-sm">Dr. Amelia Chen</p>
-                                <p className="text-xs text-muted-foreground">Submitted 2 hours ago</p>
-                            </div>
-                            <span className="px-2 py-1 text-xs font-medium bg-amber-600 text-white rounded">Pending</span>
-                        </div>
-                        <div className="flex items-center justify-between p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
-                            <div>
-                                <p className="font-medium text-sm">Dr. Rajesh Kumar</p>
-                                <p className="text-xs text-muted-foreground">Submitted 5 hours ago</p>
-                            </div>
-                            <span className="px-2 py-1 text-xs font-medium bg-amber-600 text-white rounded">Pending</span>
-                        </div>
+                        {recentPending.length > 0 ? (
+                            recentPending.map(app => (
+                                <div key={app.id} className="flex items-center justify-between p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
+                                    <div>
+                                        <p className="font-medium text-sm">Dr. {app.firstName} {app.lastName}</p>
+                                        <p className="text-xs text-muted-foreground">
+                                            Submitted {app.submittedAt ? new Date(app.submittedAt).toLocaleDateString() : 'Unknown'}
+                                        </p>
+                                    </div>
+                                    <span className="px-2 py-1 text-xs font-medium bg-amber-600 text-white rounded">Pending</span>
+                                </div>
+                            ))
+                        ) : (
+                            <p className="text-sm text-muted-foreground text-center py-4">No pending applications</p>
+                        )}
                     </div>
                 </SectionCard>
 
@@ -103,30 +176,29 @@ export default function AdminPage() {
                     )}
                 >
                     <div className="space-y-3">
-                        <div className="flex items-center justify-between p-3 rounded-lg border border-border">
-                            <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                                    <span className="text-sm font-medium text-primary">PS</span>
-                                </div>
-                                <div>
-                                    <p className="font-medium text-sm">Priya Sharma</p>
-                                    <p className="text-xs text-muted-foreground">3 active reviews</p>
-                                </div>
-                            </div>
-                            <span className="px-2 py-1 text-xs font-medium bg-green-600 text-white rounded">Active</span>
-                        </div>
-                        <div className="flex items-center justify-between p-3 rounded-lg border border-border">
-                            <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                                    <span className="text-sm font-medium text-primary">AK</span>
-                                </div>
-                                <div>
-                                    <p className="font-medium text-sm">Amit Kumar</p>
-                                    <p className="text-xs text-muted-foreground">2 active reviews</p>
-                                </div>
-                            </div>
-                            <span className="px-2 py-1 text-xs font-medium bg-green-600 text-white rounded">Active</span>
-                        </div>
+                        {activeReviewers.length > 0 ? (
+                            activeReviewers.map(reviewer => {
+                                const initials = reviewer.name?.split(' ').map(n => n[0]).join('').toUpperCase() || '??';
+                                return (
+                                    <div key={reviewer.id} className="flex items-center justify-between p-3 rounded-lg border border-border">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                                                <span className="text-sm font-medium text-primary">{initials}</span>
+                                            </div>
+                                            <div>
+                                                <p className="font-medium text-sm">{reviewer.name || reviewer.email}</p>
+                                                <p className="text-xs text-muted-foreground">
+                                                    {reviewer._count?.reviewingApplications || 0} active reviews
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <span className="px-2 py-1 text-xs font-medium bg-green-600 text-white rounded">Active</span>
+                                    </div>
+                                );
+                            })
+                        ) : (
+                            <p className="text-sm text-muted-foreground text-center py-4">No active reviewers</p>
+                        )}
                     </div>
                 </SectionCard>
             </div>

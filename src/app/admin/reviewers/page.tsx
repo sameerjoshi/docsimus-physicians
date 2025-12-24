@@ -1,65 +1,58 @@
 'use client';
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ApplicationHeader } from "@/src/components/admin/ApplicationHeader";
 import { Card, Button } from "@/src/components/ui";
 import { UserPlus, Mail, FileText, MoreVertical, CheckCircle, Clock } from "lucide-react";
-
-interface ReviewerData {
-    id: string;
-    name: string;
-    email: string;
-    initials: string;
-    activeReviews: number;
-    totalReviews: number;
-    status: 'Active' | 'Inactive';
-    lastActive: string;
-}
-
-const reviewers: ReviewerData[] = [
-    {
-        id: "REV-001",
-        name: "Priya Sharma",
-        email: "priya.sharma@docsimus.com",
-        initials: "PS",
-        activeReviews: 3,
-        totalReviews: 45,
-        status: 'Active',
-        lastActive: '2 hours ago'
-    },
-    {
-        id: "REV-002",
-        name: "Amit Kumar",
-        email: "amit.kumar@docsimus.com",
-        initials: "AK",
-        activeReviews: 2,
-        totalReviews: 38,
-        status: 'Active',
-        lastActive: '30 minutes ago'
-    },
-    {
-        id: "REV-003",
-        name: "Sunita Patel",
-        email: "sunita.patel@docsimus.com",
-        initials: "SP",
-        activeReviews: 4,
-        totalReviews: 52,
-        status: 'Active',
-        lastActive: '1 hour ago'
-    },
-    {
-        id: "REV-004",
-        name: "Rahul Verma",
-        email: "rahul.verma@docsimus.com",
-        initials: "RV",
-        activeReviews: 0,
-        totalReviews: 28,
-        status: 'Inactive',
-        lastActive: '3 days ago'
-    },
-];
+import { adminService, type Reviewer } from "@/src/services/admin.service";
+import { LoadingSpinner } from "@/src/components/loading-spinner";
 
 export default function ReviewersPage() {
+    const [reviewers, setReviewers] = useState<Reviewer[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        loadReviewers();
+    }, []);
+
+    const loadReviewers = async () => {
+        try {
+            setLoading(true);
+            const data = await adminService.getReviewers();
+            setReviewers(data);
+        } catch (err: any) {
+            console.error('Failed to load reviewers:', err);
+            setError(err.message || 'Failed to load reviewers');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center min-h-screen">
+                <LoadingSpinner size="lg" />
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="p-8">
+                <Card className="p-6 bg-red-50 border-red-200">
+                    <p className="text-red-700">{error}</p>
+                    <Button onClick={loadReviewers} className="mt-4">
+                        Retry
+                    </Button>
+                </Card>
+            </div>
+        );
+    }
+
+    const activeReviewers = reviewers.filter(r => (r._count?.reviewingApplications || 0) > 0);
+    const totalActiveReviews = reviewers.reduce((sum, r) => sum + (r._count?.reviewingApplications || 0), 0);
+
     return (
         <div className="space-y-6">
             {/* Header */}
@@ -75,16 +68,16 @@ export default function ReviewersPage() {
                     <p className="text-[10px] sm:text-xs text-muted-foreground">Total</p>
                 </Card>
                 <Card className="p-3 sm:p-4 text-center">
-                    <p className="text-xl sm:text-2xl font-bold text-green-600">{reviewers.filter(r => r.status === 'Active').length}</p>
+                    <p className="text-xl sm:text-2xl font-bold text-green-600">{activeReviewers.length}</p>
                     <p className="text-[10px] sm:text-xs text-muted-foreground">Active</p>
                 </Card>
                 <Card className="p-3 sm:p-4 text-center">
-                    <p className="text-xl sm:text-2xl font-bold text-blue-600">{reviewers.reduce((sum, r) => sum + r.activeReviews, 0)}</p>
+                    <p className="text-xl sm:text-2xl font-bold text-blue-600">{totalActiveReviews}</p>
                     <p className="text-[10px] sm:text-xs text-muted-foreground">Reviews</p>
                 </Card>
                 <Card className="p-3 sm:p-4 text-center">
-                    <p className="text-xl sm:text-2xl font-bold">{reviewers.reduce((sum, r) => sum + r.totalReviews, 0)}</p>
-                    <p className="text-[10px] sm:text-xs text-muted-foreground">Done</p>
+                    <p className="text-xl sm:text-2xl font-bold">{reviewers.length}</p>
+                    <p className="text-[10px] sm:text-xs text-muted-foreground">Team</p>
                 </Card>
             </div>
 
@@ -118,31 +111,33 @@ export default function ReviewersPage() {
                                     <td className="px-6 py-4">
                                         <div className="flex items-center gap-3">
                                             <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                                                <span className="text-sm font-medium text-primary">{reviewer.initials}</span>
+                                                <span className="text-sm font-medium text-primary">
+                                                    {reviewer.name?.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2) || '??'}
+                                                </span>
                                             </div>
                                             <div>
-                                                <p className="font-medium">{reviewer.name}</p>
+                                                <p className="font-medium">{reviewer.name || reviewer.email}</p>
                                                 <p className="text-xs text-muted-foreground">{reviewer.email}</p>
                                             </div>
                                         </div>
                                     </td>
                                     <td className="px-6 py-4 text-center">
-                                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full ${reviewer.status === 'Active'
-                                            ? 'bg-green-100 text-green-700'
-                                            : 'bg-gray-100 text-gray-600'
+                                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full ${(reviewer._count?.reviewingApplications || 0) > 0
+                                                ? 'bg-green-100 text-green-700'
+                                                : 'bg-gray-100 text-gray-600'
                                             }`}>
-                                            {reviewer.status === 'Active' ? <CheckCircle className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
-                                            {reviewer.status}
+                                            {(reviewer._count?.reviewingApplications || 0) > 0 ? <CheckCircle className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
+                                            {(reviewer._count?.reviewingApplications || 0) > 0 ? 'Active' : 'Inactive'}
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 text-center">
-                                        <span className="text-lg font-semibold text-primary">{reviewer.activeReviews}</span>
+                                        <span className="text-lg font-semibold text-primary">{reviewer._count?.reviewingApplications || 0}</span>
                                     </td>
                                     <td className="px-6 py-4 text-center">
-                                        <span className="font-medium">{reviewer.totalReviews}</span>
+                                        <span className="font-medium">—</span>
                                     </td>
                                     <td className="px-6 py-4 text-center text-sm text-muted-foreground">
-                                        {reviewer.lastActive}
+                                        {new Date(reviewer.createdAt).toLocaleDateString()}
                                     </td>
                                     <td className="px-6 py-4 text-right">
                                         <div className="flex items-center justify-end gap-2">

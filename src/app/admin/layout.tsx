@@ -1,12 +1,13 @@
 'use client';
 
-import { ReactNode, useState } from "react";
+import { ReactNode, useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { LayoutDashboard, FileSearch, Users, Menu, X, LogOut } from "lucide-react";
 import { cn } from "@/src/lib/utils";
 import { Button } from "@/src/components/ui";
+import { authService } from "@/src/services/auth.service";
 
 const navItems = [
     { label: "Dashboard", href: "/admin", icon: LayoutDashboard },
@@ -16,7 +17,24 @@ const navItems = [
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
     const pathname = usePathname();
+    const router = useRouter();
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const [currentUser, setCurrentUser] = useState<{ name: string | null; email: string; initials: string } | null>(null);
+
+    useEffect(() => {
+        const user = authService.getUser();
+        if (user) {
+            const initials = user.name
+                ? user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+                : user.email.slice(0, 2).toUpperCase();
+
+            setCurrentUser({
+                name: user.name,
+                email: user.email,
+                initials
+            });
+        }
+    }, []);
 
     return (
         <div className="min-h-screen bg-secondary/50">
@@ -69,14 +87,31 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                         {/* Right Side - Admin Avatar & Mobile Menu */}
                         <div className="flex items-center gap-3">
                             {/* Admin Badge - Always visible */}
-                            <div className="flex items-center gap-2">
-                                <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
-                                    <span className="text-sm font-medium text-white">A</span>
+                            {currentUser && (
+                                <div className="flex items-center gap-2">
+                                    <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
+                                        <span className="text-sm font-medium text-white">{currentUser.initials}</span>
+                                    </div>
+                                    <div className="hidden lg:block">
+                                        <p className="text-sm font-medium">{currentUser.name || currentUser.email}</p>
+                                        <p className="text-xs text-muted-foreground">Admin</p>
+                                    </div>
                                 </div>
-                                <div className="hidden lg:block">
-                                    <p className="text-sm font-medium">Admin</p>
-                                </div>
-                            </div>
+                            )}
+
+                            {/* Desktop Logout Button */}
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                    authService.logout();
+                                    router.push('/login');
+                                }}
+                                className="hidden md:flex items-center gap-2"
+                            >
+                                <LogOut className="h-4 w-4" />
+                                <span>Logout</span>
+                            </Button>
 
                             {/* Mobile Menu Toggle */}
                             <Button
@@ -116,7 +151,13 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                                     );
                                 })}
                                 <div className="pt-2 mt-2 border-t border-border">
-                                    <button className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent w-full transition-colors">
+                                    <button
+                                        onClick={() => {
+                                            authService.logout();
+                                            router.push('/login');
+                                        }}
+                                        className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent w-full transition-colors"
+                                    >
                                         <LogOut className="h-5 w-5" />
                                         <span>Logout</span>
                                     </button>

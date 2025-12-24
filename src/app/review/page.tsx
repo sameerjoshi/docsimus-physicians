@@ -1,58 +1,81 @@
 'use client';
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ArrowUpRight, ClipboardList, ShieldCheck, Clock, FileSearch } from "lucide-react";
 import { Button, Card, CardContent } from "@/src/components/ui";
 import { ApplicationHeader } from "@/src/components/admin/ApplicationHeader";
 import { SectionCard } from "@/src/components/admin/SectionCard";
-
-const highlights = [
-  {
-    label: "Assigned to Me",
-    value: "5",
-    icon: ClipboardList,
-    tone: "bg-primary/10 text-primary",
-  },
-  {
-    label: "In Progress",
-    value: "3",
-    icon: Clock,
-    tone: "bg-blue-100 text-blue-700",
-  },
-  {
-    label: "Completed This Week",
-    value: "12",
-    icon: ShieldCheck,
-    tone: "bg-green-100 text-green-700",
-  },
-];
-
-// Mock assigned applications for this reviewer
-const myApplications = [
-  {
-    id: "APP-2046",
-    doctorName: "Dr. Javier Morales",
-    status: "Under Review",
-    submittedAt: "2025-01-06",
-    priority: "High",
-  },
-  {
-    id: "APP-2050",
-    doctorName: "Dr. Sarah Johnson",
-    status: "Under Review",
-    submittedAt: "2025-01-07",
-    priority: "Normal",
-  },
-  {
-    id: "APP-2051",
-    doctorName: "Dr. Ravi Patel",
-    status: "Under Review",
-    submittedAt: "2025-01-07",
-    priority: "Normal",
-  },
-];
+import { reviewerService, type ReviewerApplication } from "@/src/services/reviewer.service";
+import { LoadingSpinner } from "@/src/components/loading-spinner";
 
 export default function ReviewPage() {
+  const [applications, setApplications] = useState<ReviewerApplication[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    loadApplications();
+  }, []);
+
+  const loadApplications = async () => {
+    try {
+      setLoading(true);
+      const data = await reviewerService.getAssignedApplications();
+      setApplications(data);
+    } catch (err: any) {
+      console.error('Failed to load applications:', err);
+      setError(err.message || 'Failed to load applications');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-8">
+        <Card className="p-6 bg-red-50 border-red-200">
+          <p className="text-red-700">{error}</p>
+          <Button onClick={loadApplications} className="mt-4">
+            Retry
+          </Button>
+        </Card>
+      </div>
+    );
+  }
+
+  const highlights = [
+    {
+      label: "Assigned to Me",
+      value: applications.length.toString(),
+      icon: ClipboardList,
+      tone: "bg-primary/10 text-primary",
+    },
+    {
+      label: "In Progress",
+      value: applications.length.toString(),
+      icon: Clock,
+      tone: "bg-blue-100 text-blue-700",
+    },
+    {
+      label: "Completed This Week",
+      value: "0",
+      icon: ShieldCheck,
+      tone: "bg-green-100 text-green-700",
+    },
+  ];
+
+  // Show first 3 applications
+  const recentApplications = applications.slice(0, 3);
+
   return (
     <div className="space-y-6 sm:space-y-8">
       <ApplicationHeader
@@ -91,46 +114,36 @@ export default function ReviewPage() {
         )}
       >
         <div className="space-y-3">
-          {myApplications.map((app) => (
-            <div
-              key={app.id}
-              className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-lg border border-border hover:bg-secondary/40 transition gap-3"
-            >
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <p className="font-medium">{app.doctorName}</p>
-                  {app.priority === "High" && (
-                    <span className="px-2 py-0.5 text-xs font-medium bg-red-600 text-white rounded">High Priority</span>
-                  )}
+          {recentApplications.length > 0 ? (
+            recentApplications.map((app) => (
+              <div
+                key={app.id}
+                className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-lg border border-border hover:bg-secondary/40 transition gap-3"
+              >
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <p className="font-medium">Dr. {app.firstName} {app.lastName}</p>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {app.id} • Submitted {app.submittedAt ? new Date(app.submittedAt).toLocaleDateString() : 'Unknown'}
+                  </p>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  {app.id} • Submitted {new Date(app.submittedAt).toLocaleDateString()}
-                </p>
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-1 text-xs font-medium bg-blue-600 text-white rounded">Under Review</span>
+                  <Link href={`/review/applications/${app.id}`}>
+                    <Button size="sm" variant="outline" className="gap-1">
+                      <FileSearch className="h-4 w-4" />
+                      <span className="hidden sm:inline">Review</span>
+                    </Button>
+                  </Link>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="px-2 py-1 text-xs font-medium bg-blue-600 text-white rounded">{app.status}</span>
-                <Link href={`/review/applications/${app.id}`}>
-                  <Button size="sm" variant="outline" className="gap-1">
-                    <FileSearch className="h-4 w-4" />
-                    <span className="hidden sm:inline">Review</span>
-                  </Button>
-                </Link>
-              </div>
-            </div>
-          ))}
+            ))
+          ) : (
+            <p className="text-center text-sm text-muted-foreground py-8">No applications assigned to you yet.</p>
+          )}
         </div>
       </SectionCard>
-
-      {/* Tips Card */}
-      {/* <Card className="p-6 bg-primary/5 border-primary/20">
-        <h3 className="font-semibold mb-2">Quick Tips</h3>
-        <ul className="text-sm text-muted-foreground space-y-1">
-          <li>• Verify all credentials and certifications thoroughly</li>
-          <li>• Check document authenticity against official records</li>
-          <li>• Leave detailed comments for rejected applications</li>
-          <li>• Contact admin if you need to reassign an application</li>
-        </ul>
-      </Card> */}
     </div>
   );
 }

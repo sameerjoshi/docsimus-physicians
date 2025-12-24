@@ -1,104 +1,96 @@
 'use client';
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ApplicationHeader } from "@/src/components/admin/ApplicationHeader";
 import { SectionCard } from "@/src/components/admin/SectionCard";
-import { AdminApplication } from "@/src/types/admin";
 import { Card, Button } from "@/src/components/ui";
 import { FileSearch, CheckCircle, XCircle, Clock, Filter } from "lucide-react";
-
-// Current reviewer ID (would come from auth context in real app)
-const CURRENT_REVIEWER_ID = "REV-001";
-const CURRENT_REVIEWER_NAME = "Priya Sharma";
-
-// Mock applications assigned to this reviewer
-const assignedApplications: AdminApplication[] = [
-  {
-    id: "APP-2046",
-    doctorName: "Dr. Javier Morales",
-    email: "j.morales@docsimus.com",
-    status: "Under Review",
-    submittedAt: "2025-01-06",
-    assignedTo: CURRENT_REVIEWER_ID,
-    assignedToName: CURRENT_REVIEWER_NAME,
-  },
-  {
-    id: "APP-2050",
-    doctorName: "Dr. Sarah Johnson",
-    email: "sarah.j@docsimus.com",
-    status: "Under Review",
-    submittedAt: "2025-01-07",
-    assignedTo: CURRENT_REVIEWER_ID,
-    assignedToName: CURRENT_REVIEWER_NAME,
-  },
-  {
-    id: "APP-2051",
-    doctorName: "Dr. Ravi Patel",
-    email: "ravi.p@docsimus.com",
-    status: "Under Review",
-    submittedAt: "2025-01-07",
-    assignedTo: CURRENT_REVIEWER_ID,
-    assignedToName: CURRENT_REVIEWER_NAME,
-  },
-  {
-    id: "APP-2040",
-    doctorName: "Dr. Emily Watson",
-    email: "emily.w@docsimus.com",
-    status: "Verified",
-    submittedAt: "2025-01-03",
-    assignedTo: CURRENT_REVIEWER_ID,
-    assignedToName: CURRENT_REVIEWER_NAME,
-  },
-  {
-    id: "APP-2038",
-    doctorName: "Dr. Michael Brown",
-    email: "m.brown@docsimus.com",
-    status: "Rejected",
-    submittedAt: "2025-01-02",
-    assignedTo: CURRENT_REVIEWER_ID,
-    assignedToName: CURRENT_REVIEWER_NAME,
-  },
-];
+import { reviewerService, type ReviewerApplication } from "@/src/services/reviewer.service";
+import { LoadingSpinner } from "@/src/components/loading-spinner";
 
 export default function ReviewerApplicationsPage() {
+  const [applications, setApplications] = useState<ReviewerApplication[]>([]);
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const filteredApplications = assignedApplications.filter(app => {
+  useEffect(() => {
+    loadApplications();
+  }, []);
+
+  const loadApplications = async () => {
+    try {
+      setLoading(true);
+      const data = await reviewerService.getAssignedApplications();
+      setApplications(data);
+    } catch (err: any) {
+      console.error('Failed to load applications:', err);
+      setError(err.message || 'Failed to load applications');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-8">
+        <Card className="p-6 bg-red-50 border-red-200">
+          <p className="text-red-700">{error}</p>
+          <Button onClick={loadApplications} className="mt-4">
+            Retry
+          </Button>
+        </Card>
+      </div>
+    );
+  }
+
+  const filteredApplications = applications.filter(app => {
+    const doctorName = `Dr. ${app.firstName} ${app.lastName}`;
     const matchesSearch =
-      app.doctorName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      doctorName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       app.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
       app.id.toLowerCase().includes(searchQuery.toLowerCase());
 
-    const matchesFilter = filterStatus === "all" || app.status === filterStatus;
+    const matchesFilter = filterStatus === "all" || filterStatus === "Under Review";
 
     return matchesSearch && matchesFilter;
   });
 
-  const pendingCount = assignedApplications.filter(a => a.status === "Under Review").length;
+  const pendingCount = applications.length; // All assigned apps are pending
 
   return (
     <div className="space-y-6">
       <ApplicationHeader
         title="My Applications"
-        description={`Applications assigned to you for review (${assignedApplications.length} total, ${pendingCount} pending)`}
+        description={`Applications assigned to you for review (${applications.length} total, ${pendingCount} pending)`}
       />
 
       {/* Filter Tabs */}
       <div className="flex flex-wrap gap-2">
-        {["all", "Under Review", "Verified", "Rejected"].map((status) => (
-          <Button
-            key={status}
-            variant={filterStatus === status ? "default" : "outline"}
-            size="sm"
-            onClick={() => setFilterStatus(status)}
-            className="capitalize"
-          >
-            {status === "all" ? "All" : status}
-            {status === "Under Review" && ` (${pendingCount})`}
-          </Button>
-        ))}
+        <Button
+          variant={filterStatus === "all" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setFilterStatus("all")}
+        >
+          All ({applications.length})
+        </Button>
+        <Button
+          variant={filterStatus === "Under Review" ? "default" : "outline"}
+          size="sm"
+          onClick={() => setFilterStatus("Under Review")}
+        >
+          Under Review ({pendingCount})
+        </Button>
       </div>
 
       {/* Search */}
@@ -131,22 +123,22 @@ export default function ReviewerApplicationsPage() {
                   <tr key={app.id} className="hover:bg-secondary/40 transition">
                     <td className="px-6 py-4">
                       <div>
-                        <p className="font-medium text-sm">{app.doctorName}</p>
+                        <p className="font-medium text-sm">Dr. {app.firstName} {app.lastName}</p>
                         <p className="text-xs text-muted-foreground">{app.email}</p>
                       </div>
                     </td>
                     <td className="px-6 py-4 text-sm text-muted-foreground">{app.id}</td>
                     <td className="px-6 py-4">
-                      <StatusBadge status={app.status} />
+                      <StatusBadge status="Under Review" />
                     </td>
                     <td className="px-6 py-4 text-sm text-muted-foreground">
-                      {new Date(app.submittedAt).toLocaleDateString()}
+                      {app.submittedAt ? new Date(app.submittedAt).toLocaleDateString() : '—'}
                     </td>
                     <td className="px-6 py-4 text-right">
                       <Link href={`/review/applications/${app.id}`}>
                         <Button size="sm" className="gap-1">
                           <FileSearch className="h-4 w-4" />
-                          {app.status === "Under Review" ? "Review" : "View"}
+                          Review
                         </Button>
                       </Link>
                     </td>
@@ -164,10 +156,10 @@ export default function ReviewerApplicationsPage() {
           <Card key={app.id} className="p-4">
             <div className="flex items-start justify-between mb-3">
               <div>
-                <p className="font-semibold">{app.doctorName}</p>
+                <p className="font-semibold">Dr. {app.firstName} {app.lastName}</p>
                 <p className="text-xs text-muted-foreground">{app.email}</p>
               </div>
-              <StatusBadge status={app.status} />
+              <StatusBadge status="Under Review" />
             </div>
             <div className="space-y-2 text-sm mb-4">
               <div className="flex justify-between">
@@ -176,13 +168,13 @@ export default function ReviewerApplicationsPage() {
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Submitted:</span>
-                <span>{new Date(app.submittedAt).toLocaleDateString()}</span>
+                <span>{app.submittedAt ? new Date(app.submittedAt).toLocaleDateString() : '—'}</span>
               </div>
             </div>
             <Link href={`/review/applications/${app.id}`}>
               <Button className="w-full gap-2">
                 <FileSearch className="h-4 w-4" />
-                {app.status === "Under Review" ? "Review Application" : "View Details"}
+                Review Application
               </Button>
             </Link>
           </Card>

@@ -1,28 +1,39 @@
 'use client';
 
-import { ReactNode, useState } from "react";
+import { ReactNode, useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { LayoutDashboard, FileSearch, Menu, X, LogOut, User } from "lucide-react";
 import { cn } from "@/src/lib/utils";
 import { Button } from "@/src/components/ui";
+import { authService } from "@/src/services/auth.service";
 
 const navItems = [
   { label: "Dashboard", href: "/review", icon: LayoutDashboard },
   { label: "My Applications", href: "/review/applications", icon: FileSearch },
 ];
 
-// Mock current reviewer (would come from auth context)
-const currentReviewer = {
-  name: "Priya Sharma",
-  initials: "PS",
-  email: "priya.sharma@docsimus.com",
-};
-
 export default function ReviewLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState<{ name: string | null; email: string; initials: string } | null>(null);
+
+  useEffect(() => {
+    const user = authService.getUser();
+    if (user) {
+      const initials = user.name
+        ? user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+        : user.email.slice(0, 2).toUpperCase();
+
+      setCurrentUser({
+        name: user.name,
+        email: user.email,
+        initials
+      });
+    }
+  }, []);
 
   return (
     <div className="min-h-screen bg-secondary/50">
@@ -75,15 +86,31 @@ export default function ReviewLayout({ children }: { children: ReactNode }) {
             {/* Right Side - Reviewer Profile & Mobile Menu */}
             <div className="flex items-center gap-3">
               {/* Reviewer Profile */}
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
-                  <span className="text-sm font-medium text-white">{currentReviewer.initials}</span>
+              {currentUser && (
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
+                    <span className="text-sm font-medium text-white">{currentUser.initials}</span>
+                  </div>
+                  <div className="hidden lg:block">
+                    <p className="text-sm font-medium">{currentUser.name || currentUser.email}</p>
+                    <p className="text-xs text-muted-foreground">Reviewer</p>
+                  </div>
                 </div>
-                <div className="hidden lg:block">
-                  <p className="text-sm font-medium">{currentReviewer.name}</p>
-                  <p className="text-xs text-muted-foreground">Reviewer</p>
-                </div>
-              </div>
+              )}
+
+              {/* Desktop Logout Button */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  authService.logout();
+                  router.push('/login');
+                }}
+                className="hidden md:flex items-center gap-2"
+              >
+                <LogOut className="h-4 w-4" />
+                <span>Logout</span>
+              </Button>
 
               {/* Mobile Menu Toggle */}
               <Button
@@ -101,15 +128,17 @@ export default function ReviewLayout({ children }: { children: ReactNode }) {
           {mobileMenuOpen && (
             <div className="md:hidden border-t border-border py-4 animate-in slide-in-from-top-2">
               {/* User Info Card - Mobile */}
-              <div className="flex items-center gap-3 px-4 py-3 mb-3 bg-primary/5 rounded-lg">
-                <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center">
-                  <span className="text-base font-medium text-white">{currentReviewer.initials}</span>
+              {currentUser && (
+                <div className="flex items-center gap-3 px-4 py-3 mbuser-3 bg-primary/5 rounded-lg">
+                  <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center">
+                    <span className="text-base font-medium text-white">{currentUser.initials}</span>
+                  </div>
+                  <div>
+                    <p className="font-medium">{currentUser.name || currentUser.email}</p>
+                    <p className="text-xs text-muted-foreground">{currentUser.email}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-medium">{currentReviewer.name}</p>
-                  <p className="text-xs text-muted-foreground">{currentReviewer.email}</p>
-                </div>
-              </div>
+              )}
 
               <nav className="flex flex-col space-y-1">
                 {navItems.map((item) => {
@@ -134,7 +163,13 @@ export default function ReviewLayout({ children }: { children: ReactNode }) {
                   );
                 })}
                 <div className="pt-2 mt-2 border-t border-border">
-                  <button className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent w-full transition-colors">
+                  <button
+                    onClick={() => {
+                      authService.logout();
+                      router.push('/login');
+                    }}
+                    className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent w-full transition-colors"
+                  >
                     <LogOut className="h-5 w-5" />
                     <span>Logout</span>
                   </button>

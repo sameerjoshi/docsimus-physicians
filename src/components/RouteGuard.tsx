@@ -88,10 +88,30 @@ export function RouteGuard({
                     if (response.ok) {
                         const profile = await response.json();
 
-                        // If status is DRAFT, redirect to onboarding
+                        // Status-based routing
+                        const currentPath = window.location.pathname;
+
                         if (profile.status === "DRAFT") {
-                            router.push("/onboarding");
-                            return;
+                            // DRAFT: Should be on registration page
+                            if (currentPath !== "/registration") {
+                                router.push("/registration");
+                                return;
+                            }
+                        } else if (profile.status === "PENDING") {
+                            // PENDING: Should be on application-status page
+                            if (currentPath !== "/application-status") {
+                                router.push("/application-status");
+                                return;
+                            }
+                        } else if (profile.status === "REJECTED") {
+                            // REJECTED: Can resubmit, redirect to registration
+                            if (currentPath !== "/registration") {
+                                router.push("/registration?status=rejected");
+                                return;
+                            }
+                        } else if (profile.status === "VERIFIED") {
+                            // VERIFIED: Can access all pages
+                            // No redirect needed
                         }
                     }
                 } catch (error) {

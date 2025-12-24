@@ -24,6 +24,7 @@ export interface DoctorProfile {
     availableNow: boolean;
     weeklyAvailability?: Record<string, string>;
     status: string;
+    rejectionReason?: string; // Added for rejected applications
     createdAt: string;
     updatedAt: string;
     submittedAt?: string;
@@ -106,15 +107,15 @@ export class DoctorService {
 
         // Personal info
         if (state.profile) {
-            if (state.profile.firstName) updateData.firstName = state.profile.firstName;
-            if (state.profile.lastName) updateData.lastName = state.profile.lastName;
-            if (state.profile.phone) updateData.phone = state.profile.phone;
-            if (state.profile.dob) updateData.dob = state.profile.dob;
-            if (state.profile.addressLine1) updateData.addressLine1 = state.profile.addressLine1;
-            if (state.profile.addressLine2) updateData.addressLine2 = state.profile.addressLine2;
-            if (state.profile.city) updateData.city = state.profile.city;
-            if (state.profile.state) updateData.state = state.profile.state;
-            if (state.profile.postalCode) updateData.postalCode = state.profile.postalCode;
+            if (state.profile.firstName !== undefined) updateData.firstName = state.profile.firstName;
+            if (state.profile.lastName !== undefined) updateData.lastName = state.profile.lastName;
+            if (state.profile.phone !== undefined) updateData.phone = state.profile.phone;
+            if (state.profile.dob !== undefined) updateData.dob = state.profile.dob;
+            if (state.profile.addressLine1 !== undefined) updateData.addressLine1 = state.profile.addressLine1;
+            if (state.profile.addressLine2 !== undefined) updateData.addressLine2 = state.profile.addressLine2;
+            if (state.profile.city !== undefined) updateData.city = state.profile.city;
+            if (state.profile.state !== undefined) updateData.state = state.profile.state;
+            if (state.profile.postalCode !== undefined) updateData.postalCode = state.profile.postalCode;
         }
 
         // Professional info

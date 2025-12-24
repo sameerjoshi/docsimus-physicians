@@ -1,102 +1,102 @@
 'use client';
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ApplicationHeader } from "@/src/components/admin/ApplicationHeader";
 import { SectionCard } from "@/src/components/admin/SectionCard";
-import { AdminApplication, Reviewer } from "@/src/types/admin";
 import { Card, Button, Badge } from "@/src/components/ui";
 import { UserPlus, Check, Search, Filter } from "lucide-react";
-
-// Mock reviewers
-const mockReviewers: Reviewer[] = [
-    { id: "REV-001", name: "Priya Sharma", email: "priya.sharma@docsimus.com" },
-    { id: "REV-002", name: "Amit Kumar", email: "amit.kumar@docsimus.com" },
-    { id: "REV-003", name: "Sunita Patel", email: "sunita.patel@docsimus.com" },
-    { id: "REV-004", name: "Rahul Verma", email: "rahul.verma@docsimus.com" },
-];
-
-// Mock applications
-const initialApplications: AdminApplication[] = [
-    {
-        id: "APP-2045",
-        doctorName: "Dr. Amelia Chen",
-        email: "amelia.chen@docsimus.com",
-        status: "Submitted",
-        submittedAt: "2025-01-05",
-    },
-    {
-        id: "APP-2046",
-        doctorName: "Dr. Javier Morales",
-        email: "j.morales@docsimus.com",
-        status: "Under Review",
-        submittedAt: "2025-01-06",
-        assignedTo: "REV-001",
-        assignedToName: "Priya Sharma",
-    },
-    {
-        id: "APP-2047",
-        doctorName: "Dr. Priya Nair",
-        email: "priya.nair@docsimus.com",
-        status: "Verified",
-        submittedAt: "2025-01-04",
-        assignedTo: "REV-002",
-        assignedToName: "Amit Kumar",
-    },
-    {
-        id: "APP-2048",
-        doctorName: "Dr. Ethan Walker",
-        email: "e.walker@docsimus.com",
-        status: "Submitted",
-        submittedAt: "2025-01-03",
-    },
-    {
-        id: "APP-2049",
-        doctorName: "Dr. Rajesh Kumar",
-        email: "rajesh.k@docsimus.com",
-        status: "Submitted",
-        submittedAt: "2025-01-07",
-    },
-];
+import { adminService, type AdminDoctorApplication, type Reviewer } from "@/src/services/admin.service";
+import { LoadingSpinner } from "@/src/components/loading-spinner";
 
 export default function AdminApplicationsPage() {
-    const [applications, setApplications] = useState<AdminApplication[]>(initialApplications);
+    const [applications, setApplications] = useState<AdminDoctorApplication[]>([]);
+    const [reviewers, setReviewers] = useState<Reviewer[]>([]);
     const [searchQuery, setSearchQuery] = useState("");
     const [filterStatus, setFilterStatus] = useState<string>("all");
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-    const handleAssignReviewer = (appId: string, reviewerId: string) => {
-        const reviewer = mockReviewers.find(r => r.id === reviewerId);
-        if (!reviewer) return;
+    useEffect(() => {
+        loadData();
+    }, []);
 
-        setApplications(prev =>
-            prev.map(app =>
-                app.id === appId
-                    ? {
-                        ...app,
-                        assignedTo: reviewerId,
-                        assignedToName: reviewer.name,
-                        status: "Under Review",
-                        assignedAt: new Date().toISOString(),
-                    }
-                    : app
-            )
-        );
+    const loadData = async () => {
+        try {
+            setLoading(true);
+            const [apps, reviewerList] = await Promise.all([
+                adminService.getAllApplications(),
+                adminService.getReviewers(),
+            ]);
+            setApplications(apps);
+            setReviewers(reviewerList);
+        } catch (err: any) {
+            console.error('Failed to load data:', err);
+            setError(err.message || 'Failed to load data');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleAssignReviewer = async (doctorId: string, reviewerId: string) => {
+        try {
+            await adminService.assignReviewer(doctorId, { reviewerId });
+            // Reload data to reflect changes
+            await loadData();
+        } catch (err: any) {
+            console.error('Failed to assign reviewer:', err);
+            alert(err.message || 'Failed to assign reviewer');
+        }
+    };
+
+    // Map backend status to UI display
+    const getDisplayStatus = (app: AdminDoctorApplication): string => {
+        if (app.status === 'PENDING' && !app.reviewerId) return 'Submitted';
+        if (app.status === 'PENDING' && app.reviewerId) return 'Under Review';
+        if (app.status === 'VERIFIED') return 'Verified';
+        if (app.status === 'REJECTED') return 'Rejected';
+        return app.status;
     };
 
     const filteredApplications = applications.filter(app => {
+        const doctorName = `Dr. ${app.firstName} ${app.lastName}`;
         const matchesSearch =
-            app.doctorName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            doctorName.toLowerCase().includes(searchQuery.toLowerCase()) ||
             app.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
             app.id.toLowerCase().includes(searchQuery.toLowerCase());
 
         const matchesFilter = filterStatus === "all" ||
-            (filterStatus === "unassigned" && !app.assignedTo) ||
-            (filterStatus === "assigned" && app.assignedTo) ||
-            app.status === filterStatus;
+            (filterStatus === "unassigned" && !app.reviewerId && app.status === 'PENDING') ||
+            (filterStatus === "assigned" && app.reviewerId && app.status === 'PENDING') ||
+            (filterStatus === "Submitted" && app.status === 'PENDING' && !app.reviewerId) ||
+            (filterStatus === "Under Review" && app.status === 'PENDING' && app.reviewerId) ||
+            (filterStatus === "Verified" && app.status === 'VERIFIED') ||
+            (filterStatus === "Rejected" && app.status === 'REJECTED');
 
         return matchesSearch && matchesFilter;
     });
 
-    const unassignedCount = applications.filter(a => !a.assignedTo && a.status === "Submitted").length;
+    const unassignedCount = applications.filter(a => !a.reviewerId && a.status === 'PENDING').length;
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center min-h-screen">
+                <LoadingSpinner size="lg" />
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="p-8">
+                <Card className="p-6 bg-red-50 border-red-200">
+                    <p className="text-red-700">{error}</p>
+                    <Button onClick={loadData} className="mt-4">
+                        Retry
+                    </Button>
+                </Card>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6">
@@ -180,41 +180,41 @@ export default function AdminApplicationsPage() {
                                     <tr key={app.id} className="hover:bg-secondary/40 transition">
                                         <td className="px-6 py-4">
                                             <div>
-                                                <p className="font-medium text-sm">{app.doctorName}</p>
+                                                <p className="font-medium text-sm">Dr. {app.firstName} {app.lastName}</p>
                                                 <p className="text-xs text-muted-foreground">{app.email}</p>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 text-sm text-muted-foreground">{app.id}</td>
                                         <td className="px-6 py-4">
-                                            <StatusBadge status={app.status} />
+                                            <StatusBadge status={getDisplayStatus(app)} />
                                         </td>
                                         <td className="px-6 py-4 text-sm text-muted-foreground">
-                                            {new Date(app.submittedAt).toLocaleDateString()}
+                                            {app.submittedAt ? new Date(app.submittedAt).toLocaleDateString() : '—'}
                                         </td>
                                         <td className="px-6 py-4">
-                                            {app.assignedTo ? (
+                                            {app.reviewer ? (
                                                 <div className="flex items-center gap-2">
                                                     <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
                                                         <span className="text-xs font-medium text-primary">
-                                                            {app.assignedToName?.split(' ').map(n => n[0]).join('')}
+                                                            {app.reviewer.name?.split(' ').map((n: string) => n[0]).join('').toUpperCase() || '??'}
                                                         </span>
                                                     </div>
-                                                    <span className="text-sm">{app.assignedToName}</span>
+                                                    <span className="text-sm">{app.reviewer.name || app.reviewer.email}</span>
                                                 </div>
                                             ) : (
                                                 <span className="text-sm text-muted-foreground">—</span>
                                             )}
                                         </td>
                                         <td className="px-6 py-4 text-right">
-                                            {!app.assignedTo && app.status === "Submitted" ? (
+                                            {!app.reviewerId && app.status === 'PENDING' ? (
                                                 <select
                                                     onChange={(e) => handleAssignReviewer(app.id, e.target.value)}
                                                     className="px-3 py-1.5 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-background"
                                                     defaultValue=""
                                                 >
                                                     <option value="" disabled>Assign Reviewer</option>
-                                                    {mockReviewers.map(r => (
-                                                        <option key={r.id} value={r.id}>{r.name}</option>
+                                                    {reviewers.map((r: Reviewer) => (
+                                                        <option key={r.id} value={r.id}>{r.name || r.email}</option>
                                                     ))}
                                                 </select>
                                             ) : (
@@ -238,10 +238,10 @@ export default function AdminApplicationsPage() {
                     <Card key={app.id} className="p-4">
                         <div className="flex items-start justify-between mb-3">
                             <div>
-                                <p className="font-semibold">{app.doctorName}</p>
+                                <p className="font-semibold">Dr. {app.firstName} {app.lastName}</p>
                                 <p className="text-xs text-muted-foreground">{app.email}</p>
                             </div>
-                            <StatusBadge status={app.status} />
+                            <StatusBadge status={getDisplayStatus(app)} />
                         </div>
                         <div className="space-y-2 text-sm mb-4">
                             <div className="flex justify-between">
@@ -250,33 +250,32 @@ export default function AdminApplicationsPage() {
                             </div>
                             <div className="flex justify-between">
                                 <span className="text-muted-foreground">Submitted:</span>
-                                <span>{new Date(app.submittedAt).toLocaleDateString()}</span>
+                                <span>{app.submittedAt ? new Date(app.submittedAt).toLocaleDateString() : '—'}</span>
                             </div>
                             <div className="flex justify-between">
                                 <span className="text-muted-foreground">Assigned:</span>
-                                <span>{app.assignedToName || "Not assigned"}</span>
+                                <span>{app.reviewer?.name || app.reviewer?.email || "Not assigned"}</span>
                             </div>
                         </div>
-                        {!app.assignedTo && app.status === "Submitted" ? (
+                        {!app.reviewerId && app.status === 'PENDING' ? (
                             <select
                                 onChange={(e) => handleAssignReviewer(app.id, e.target.value)}
                                 className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-background"
                                 defaultValue=""
                             >
                                 <option value="" disabled>Select Reviewer</option>
-                                {mockReviewers.map(r => (
-                                    <option key={r.id} value={r.id}>{r.name}</option>
+                                {reviewers.map((r: Reviewer) => (
+                                    <option key={r.id} value={r.id}>{r.name || r.email}</option>
                                 ))}
                             </select>
                         ) : (
                             <div className="flex items-center justify-center gap-2 py-2 bg-green-100 text-green-700 rounded text-sm">
                                 <Check className="h-4 w-4" />
-                                Assigned to {app.assignedToName}
+                                Assigned to {app.reviewer?.name || app.reviewer?.email}
                             </div>
                         )}
                     </Card>
-                ))}
-            </div>
+                ))}\n            </div>
 
             {filteredApplications.length === 0 && (
                 <Card className="p-12 text-center">

@@ -6,7 +6,7 @@ import { Input, Button } from "@/src/components/ui";
 import { useOnboardingAPI } from "@/src/hooks/useOnboardingAPI";
 import { motion } from "framer-motion";
 import { fadeInUp } from "@/src/lib/animations";
-import { Plus, Upload, CheckCircle } from "lucide-react";
+import { Plus, Upload, CheckCircle, AlertCircle, XCircle, Clock } from "lucide-react";
 import { doctorService } from "@/src/services/doctor.service";
 
 interface Step {
@@ -50,6 +50,19 @@ export function RegistrationForm() {
   // Step 3: Document uploads
   const [documentUploads, setDocumentUploads] = useState<Record<string, { file: File | null; uploading: boolean; uploaded: boolean }>>({});
   const fileInputRefs = useState<Record<string, HTMLInputElement | null>>({});
+
+  // Application status (for rejected applications)
+  const [applicationStatus, setApplicationStatus] = useState<{
+    status: 'DRAFT' | 'PENDING' | 'VERIFIED' | 'REJECTED';
+    rejectionReason?: string;
+    documents: Array<{
+      id: string;
+      type: string;
+      status: 'PENDING' | 'APPROVED' | 'REJECTED';
+      rejectionReason?: string;
+      originalName: string;
+    }>;
+  } | null>(null);
 
   const documentTypes = [
     { key: "governmentId", label: "Government ID" },
@@ -124,10 +137,31 @@ export function RegistrationForm() {
   }, [state]);
 
   // Fetch uploaded documents on mount
+  // Fetch uploaded documents and application status on mount
   useEffect(() => {
-    const fetchDocuments = async () => {
+    const fetchData = async () => {
       try {
-        const docs = await doctorService.getDocuments();
+        // Fetch both documents and profile (which includes status and rejectionReason)
+        const [docs, profile] = await Promise.all([
+          doctorService.getDocuments(),
+          doctorService.getProfile(),
+        ]);
+
+        // Set application status from profile
+        if (profile) {
+          setApplicationStatus({
+            status: profile.status as any,
+            rejectionReason: profile.rejectionReason,
+            documents: docs.map((doc: any) => ({
+              id: doc.id,
+              type: doc.type,
+              status: doc.status,
+              rejectionReason: doc.rejectionReason,
+              originalName: doc.originalName,
+            })),
+          });
+        }
+
         const uploads: Record<string, { file: File | null; uploading: boolean; uploaded: boolean }> = {};
 
         docs.forEach((doc: any) => {
@@ -144,7 +178,7 @@ export function RegistrationForm() {
       }
     };
 
-    fetchDocuments();
+    fetchData();
   }, []);
 
   const steps: Step[] = [
@@ -210,6 +244,29 @@ export function RegistrationForm() {
       <div className="text-center">
         <h1 className="text-3xl font-bold text-black">Provider Registration</h1>
       </div>
+
+      {/* Rejection Alert Banner */}
+      {applicationStatus?.status === 'REJECTED' && (
+        <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-md shadow-sm">
+          <div className="flex items-start">
+            <AlertCircle className="h-5 w-5 text-red-500 mt-0.5 mr-3 flex-shrink-0" />
+            <div className="flex-1">
+              <h3 className="text-sm font-semibold text-red-800 mb-1">
+                Application Rejected
+              </h3>
+              <p className="text-sm text-red-700 mb-2">
+                {applicationStatus.rejectionReason || 'Your application has been rejected. Please review the feedback below and make necessary corrections.'}
+              </p>
+              <p className="text-sm text-red-600 font-medium">
+                Please fix the rejected documents and resubmit your application.
+              </p>
+              <p className="text-xs text-red-600 mt-2">
+                Verified documents are locked and don't need changes.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Step Indicators */}
       <div className="flex justify-center items-center gap-16 px-4">
@@ -591,6 +648,12 @@ export function RegistrationForm() {
                 const isUploaded = docState?.uploaded;
                 const isUploading = docState?.uploading;
 
+                // Get document status from application status
+                const existingDoc = applicationStatus?.documents.find(d => d.type === docType.key);
+                const isApproved = existingDoc?.status === 'APPROVED';
+                const isRejected = existingDoc?.status === 'REJECTED';
+                const isPending = existingDoc?.status === 'PENDING';
+
                 return (
                   <div key={docType.key}>
                     <input
@@ -599,32 +662,81 @@ export function RegistrationForm() {
                       className="hidden"
                       accept="image/*,application/pdf,video/*"
                       onChange={(e) => handleFileChange(docType.key, e)}
+                      disabled={isApproved}
                     />
                     <div
-                      onClick={() => !isUploading && handleFileClick(docType.key)}
-                      className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors cursor-pointer ${isUploaded
-                        ? "border-teal-500 bg-teal-50"
-                        : "border-gray-300 hover:border-teal-500"
+                      onClick={() => !isUploading && !isApproved && handleFileClick(docType.key)}
+                      className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${isApproved
+                          ? "border-green-300 bg-green-50 cursor-not-allowed opacity-75"
+                          : isRejected
+                            ? "border-red-300 bg-red-50 cursor-pointer hover:border-red-400"
+                            : isUploaded
+                              ? "border-teal-500 bg-teal-50 cursor-pointer"
+                              : "border-gray-300 hover:border-teal-500 cursor-pointer"
                         }`}
                     >
                       <div className="flex flex-col items-center gap-2">
-                        {isUploaded ? (
+                        {/* Icon based on status */}
+                        {isApproved ? (
+                          <CheckCircle className="w-8 h-8 text-green-600" />
+                        ) : isRejected ? (
+                          <XCircle className="w-8 h-8 text-red-600" />
+                        ) : isUploaded ? (
                           <CheckCircle className="w-8 h-8 text-teal-500" />
                         ) : isUploading ? (
                           <div className="animate-spin w-8 h-8 border-4 border-teal-500 border-t-transparent rounded-full" />
                         ) : (
                           <Upload className="w-8 h-8 text-gray-400" />
                         )}
+
+                        {/* Document label */}
                         <p className="text-sm font-medium text-gray-900">
                           {docType.label}
                         </p>
-                        <p className="text-xs text-gray-500">
-                          {isUploaded
-                            ? `✓ ${docState.file?.name}`
-                            : isUploading
-                              ? "Uploading..."
-                              : "Click to upload or drag & drop"}
-                        </p>
+
+                        {/* Status message */}
+                        {isApproved ? (
+                          <div className="space-y-1">
+                            <p className="text-xs text-green-700 font-medium">
+                              Verified - No changes needed
+                            </p>
+                            <p className="text-xs text-green-600">
+                              {existingDoc?.originalName}
+                            </p>
+                          </div>
+                        ) : isRejected ? (
+                          <div className="space-y-1">
+                            <p className="text-xs text-red-700 font-semibold">
+                              Rejected - Please re-upload
+                            </p>
+                            <p className="text-xs text-red-600 bg-red-100 px-2 py-1 rounded">
+                              {existingDoc?.rejectionReason || 'Document needs correction'}
+                            </p>
+                            <p className="text-xs text-blue-600 font-medium mt-1">
+                              Click to upload new document
+                            </p>
+                          </div>
+                        ) : isPending ? (
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-1 justify-center">
+                              <Clock className="w-3 h-3 text-yellow-600" />
+                              <p className="text-xs text-yellow-700 font-medium">
+                                Under Review
+                              </p>
+                            </div>
+                            <p className="text-xs text-yellow-600">
+                              {existingDoc?.originalName}
+                            </p>
+                          </div>
+                        ) : (
+                          <p className="text-xs text-gray-500">
+                            {isUploaded
+                              ? `${docState.file?.name}`
+                              : isUploading
+                                ? "Uploading..."
+                                : "Click to upload or drag & drop"}
+                          </p>
+                        )}
                       </div>
                     </div>
                   </div>
