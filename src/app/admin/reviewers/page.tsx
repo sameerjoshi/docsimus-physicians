@@ -123,8 +123,8 @@ export default function ReviewersPage() {
                                     </td>
                                     <td className="px-6 py-4 text-center">
                                         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full ${(reviewer._count?.reviewingApplications || 0) > 0
-                                                ? 'bg-green-100 text-green-700'
-                                                : 'bg-gray-100 text-gray-600'
+                                            ? 'bg-green-100 text-green-700'
+                                            : 'bg-gray-100 text-gray-600'
                                             }`}>
                                             {(reviewer._count?.reviewingApplications || 0) > 0 ? <CheckCircle className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
                                             {(reviewer._count?.reviewingApplications || 0) > 0 ? 'Active' : 'Inactive'}
@@ -158,57 +158,65 @@ export default function ReviewersPage() {
 
             {/* Mobile Card View */}
             <div className="md:hidden space-y-3">
-                {reviewers.map((reviewer) => (
-                    <Card key={reviewer.id} className="p-4">
-                        {/* Header Row */}
-                        <div className="flex items-start justify-between gap-3 mb-4">
-                            <div className="flex items-center gap-3">
-                                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                                    <span className="text-lg font-semibold text-primary">{reviewer.initials}</span>
-                                </div>
-                                <div className="min-w-0">
-                                    <p className="font-semibold truncate">{reviewer.name}</p>
-                                    <p className="text-xs text-muted-foreground truncate">{reviewer.email}</p>
-                                </div>
-                            </div>
-                            <span className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full flex-shrink-0 ${reviewer.status === 'Active'
-                                ? 'bg-green-100 text-green-700'
-                                : 'bg-gray-100 text-gray-600'
-                                }`}>
-                                {reviewer.status === 'Active' ? <CheckCircle className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
-                                {reviewer.status}
-                            </span>
-                        </div>
+                {reviewers.map((reviewer) => {
+                    // Compute properties that don't exist on the Reviewer type
+                    const initials = reviewer.name?.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2) || reviewer.email.slice(0, 2).toUpperCase();
+                    const activeReviews = reviewer._count?.reviewingApplications || 0;
+                    const status = activeReviews > 0 ? 'Active' : 'Inactive';
+                    const lastActive = new Date(reviewer.createdAt).toLocaleDateString();
 
-                        {/* Stats Row */}
-                        <div className="grid grid-cols-3 gap-2 mb-4">
-                            <div className="p-2 bg-secondary/50 rounded-lg text-center">
-                                <p className="text-lg font-bold text-primary">{reviewer.activeReviews}</p>
-                                <p className="text-[10px] text-muted-foreground uppercase">Active</p>
+                    return (
+                        <Card key={reviewer.id} className="p-4">
+                            {/* Header Row */}
+                            <div className="flex items-start justify-between gap-3 mb-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                                        <span className="text-lg font-semibold text-primary">{initials}</span>
+                                    </div>
+                                    <div className="min-w-0">
+                                        <p className="font-semibold truncate">{reviewer.name || reviewer.email}</p>
+                                        <p className="text-xs text-muted-foreground truncate">{reviewer.email}</p>
+                                    </div>
+                                </div>
+                                <span className={`inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full flex-shrink-0 ${status === 'Active'
+                                    ? 'bg-green-100 text-green-700'
+                                    : 'bg-gray-100 text-gray-600'
+                                    }`}>
+                                    {status === 'Active' ? <CheckCircle className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
+                                    {status}
+                                </span>
                             </div>
-                            <div className="p-2 bg-secondary/50 rounded-lg text-center">
-                                <p className="text-lg font-bold">{reviewer.totalReviews}</p>
-                                <p className="text-[10px] text-muted-foreground uppercase">Completed</p>
-                            </div>
-                            <div className="p-2 bg-secondary/50 rounded-lg text-center">
-                                <p className="text-xs font-medium text-muted-foreground">{reviewer.lastActive}</p>
-                                <p className="text-[10px] text-muted-foreground uppercase">Last Active</p>
-                            </div>
-                        </div>
 
-                        {/* Actions */}
-                        <div className="flex gap-2">
-                            <Button variant="outline" size="sm" className="flex-1 gap-1.5">
-                                <Mail className="h-4 w-4" />
-                                Email
-                            </Button>
-                            <Button variant="outline" size="sm" className="flex-1 gap-1.5">
-                                <FileText className="h-4 w-4" />
-                                Work
-                            </Button>
-                        </div>
-                    </Card>
-                ))}
+                            {/* Stats Row */}
+                            <div className="grid grid-cols-3 gap-2 mb-4">
+                                <div className="p-2 bg-secondary/50 rounded-lg text-center">
+                                    <p className="text-lg font-bold text-primary">{activeReviews}</p>
+                                    <p className="text-[10px] text-muted-foreground uppercase">Active</p>
+                                </div>
+                                <div className="p-2 bg-secondary/50 rounded-lg text-center">
+                                    <p className="text-lg font-bold">—</p>
+                                    <p className="text-[10px] text-muted-foreground uppercase">Completed</p>
+                                </div>
+                                <div className="p-2 bg-secondary/50 rounded-lg text-center">
+                                    <p className="text-xs font-medium text-muted-foreground">{lastActive}</p>
+                                    <p className="text-[10px] text-muted-foreground uppercase">Last Active</p>
+                                </div>
+                            </div>
+
+                            {/* Actions */}
+                            <div className="flex gap-2">
+                                <Button variant="outline" size="sm" className="flex-1 gap-1.5">
+                                    <Mail className="h-4 w-4" />
+                                    Email
+                                </Button>
+                                <Button variant="outline" size="sm" className="flex-1 gap-1.5">
+                                    <FileText className="h-4 w-4" />
+                                    Work
+                                </Button>
+                            </div>
+                        </Card>
+                    );
+                })}
             </div>
         </div>
     );
