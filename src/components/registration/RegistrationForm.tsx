@@ -14,6 +14,55 @@ interface Step {
   label: string;
 }
 
+const MEDICAL_COUNCILS = [
+  "National Medical Commission (NMC)",
+  "Andhra Pradesh Medical Council",
+  "Arunachal Pradesh Medical Council",
+  "Assam Medical Council",
+  "Bihar Medical Council",
+  "Chhattisgarh Medical Council",
+  "Delhi Medical Council",
+  "Goa Medical Council",
+  "Gujarat Medical Council",
+  "Haryana Medical Council",
+  "Himachal Pradesh Medical Council",
+  "Jharkhand Medical Council",
+  "Karnataka Medical Council",
+  "Kerala Medical Council",
+  "Madhya Pradesh Medical Council",
+  "Maharashtra Medical Council",
+  "Manipur Medical Council",
+  "Meghalaya Medical Council",
+  "Mizoram Medical Council",
+  "Nagaland Medical Council",
+  "Odisha Medical Council",
+  "Punjab Medical Council",
+  "Rajasthan Medical Council",
+  "Sikkim Medical Council",
+  "Tamil Nadu Medical Council",
+  "Telangana Medical Council",
+  "Tripura Medical Council",
+  "Uttar Pradesh Medical Council",
+  "Uttarakhand Medical Council",
+  "West Bengal Medical Council",
+];
+
+const FILE_TYPE_REQUIREMENTS: Record<string, string[]> = {
+  governmentId: ["image/png", "image/jpeg", "application/pdf"],
+  medicalDegree: ["application/pdf"],
+  registrationCertificate: ["application/pdf"],
+  profilePhoto: ["image/png", "image/jpeg"],
+  introVideo: ["video/mp4", "video/quicktime", "video/webm"],
+};
+
+const FILE_TYPE_LABELS: Record<string, string> = {
+  governmentId: "PNG, JPG, or PDF",
+  medicalDegree: "PDF only",
+  registrationCertificate: "PDF only",
+  profilePhoto: "PNG or JPG",
+  introVideo: "Video formats (mp4, mov, webm)",
+};
+
 export function RegistrationForm() {
   const router = useRouter();
   const { state, updateProfile, updateProfessional, updateAvailability, loading } = useOnboardingAPI();
@@ -40,6 +89,10 @@ export function RegistrationForm() {
   const [experience, setExperience] = useState("");
   const [council, setCouncil] = useState("");
   const [registrationNumber, setRegistrationNumber] = useState("");
+  const [licenseNumber, setLicenseNumber] = useState("");
+
+  // Validation errors
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Step 4: Availability
   const [consultationFee, setConsultationFee] = useState("");
@@ -48,7 +101,7 @@ export function RegistrationForm() {
   const [bio, setBio] = useState("");
 
   // Step 3: Document uploads
-  const [documentUploads, setDocumentUploads] = useState<Record<string, { file: File | null; uploading: boolean; uploaded: boolean }>>({});
+  const [documentUploads, setDocumentUploads] = useState<Record<string, { file: File | null; uploading: boolean; uploaded: boolean; error?: string }>>({});
   const fileInputRefs = useState<Record<string, HTMLInputElement | null>>({});
 
   // Application status (for rejected applications)
@@ -81,22 +134,34 @@ export function RegistrationForm() {
     const file = event.target.files?.[0];
     if (!file) return;
 
+    // Validate file type
+    const allowedTypes = FILE_TYPE_REQUIREMENTS[docType] || [];
+    if (!allowedTypes.includes(file.type)) {
+      setDocumentUploads(prev => ({
+        ...prev,
+        [docType]: { file: null, uploading: false, uploaded: false, error: `Invalid file type. Only ${FILE_TYPE_LABELS[docType] || "supported formats"} are allowed.` }
+      }));
+      // Reset the input
+      event.target.value = "";
+      return;
+    }
+
     setDocumentUploads(prev => ({
       ...prev,
-      [docType]: { file, uploading: true, uploaded: false }
+      [docType]: { file, uploading: true, uploaded: false, error: undefined }
     }));
 
     try {
       await doctorService.uploadDocument(file, docType);
       setDocumentUploads(prev => ({
         ...prev,
-        [docType]: { file, uploading: false, uploaded: true }
+        [docType]: { file, uploading: false, uploaded: true, error: undefined }
       }));
     } catch (error) {
       console.error('Upload failed:', error);
       setDocumentUploads(prev => ({
         ...prev,
-        [docType]: { file: null, uploading: false, uploaded: false }
+        [docType]: { file: null, uploading: false, uploaded: false, error: "Upload failed. Please try again." }
       }));
     }
   };
@@ -183,46 +248,132 @@ export function RegistrationForm() {
 
   const steps: Step[] = [
     { number: 1, label: "Profile" },
-    { number: 2, label: "Credentials" },
-    { number: 3, label: "Documents" },
-    { number: 4, label: "Availability" },
+    { number: 2, label: "Clinic Address" },
+    { number: 3, label: "Credentials" },
+    { number: 4, label: "Documents" },
+    { number: 5, label: "Availability" },
   ];
 
+  // Validation functions
+  const validateStep1 = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    if (!firstName.trim()) newErrors.firstName = "First name is required";
+    if (!lastName.trim()) newErrors.lastName = "Last name is required";
+    if (!phone.trim()) newErrors.phone = "Phone number is required";
+    if (!gender) newErrors.gender = "Gender is required";
+    if (!dob) newErrors.dob = "Date of birth is required";
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const validateStep2 = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    if (!addressLine1.trim()) newErrors.addressLine1 = "Address line 1 is required";
+    if (!city.trim()) newErrors.city = "City is required";
+    if (!addressState.trim()) newErrors.addressState = "State is required";
+    if (!postalCode.trim()) newErrors.postalCode = "Postal code is required";
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const validateStep3 = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    if (!council) newErrors.council = "Medical council is required";
+    if (!registrationNumber.trim()) newErrors.registrationNumber = "Registration number is required";
+    if (!licenseNumber.trim()) newErrors.licenseNumber = "License number is required";
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const validateStep4 = (): boolean => {
+    const newErrors: Record<string, string> = {};
+    let allUploaded = true;
+
+    documentTypes.forEach((docType) => {
+      const docState = documentUploads[docType.key];
+      const existingDoc = applicationStatus?.documents.find(d => d.type === docType.key);
+
+      // Check if approved or has been uploaded in current session
+      if (!(docState?.uploaded || existingDoc?.status === 'APPROVED' || existingDoc?.status === 'PENDING')) {
+        allUploaded = false;
+        newErrors[docType.key] = `${docType.label} is required`;
+      }
+    });
+
+    setErrors(newErrors);
+    return allUploaded;
+  };
+
   const handleNext = async () => {
-    // Save data based on current step
+    // Validate current step before proceeding
+    let isValid = false;
+
     if (currentStep === 1) {
-      await updateProfile({
-        firstName,
-        lastName,
-        phone,
-        dob,
-        email,
-        gender,
-        addressLine1,
-        addressLine2,
-        city,
-        state: addressState,
-        postalCode
-      });
+      isValid = validateStep1();
+      if (isValid) {
+        await updateProfile({
+          firstName,
+          lastName,
+          phone,
+          dob,
+          email,
+          gender,
+          addressLine1,
+          addressLine2,
+          city,
+          state: addressState,
+          postalCode
+        });
+      }
     } else if (currentStep === 2) {
-      await updateProfessional({
-        specialization,
-        experience,
-        council,
-        registrationNumber,
-      });
+      isValid = validateStep2();
+      if (isValid) {
+        await updateProfile({
+          firstName,
+          lastName,
+          phone,
+          dob,
+          email,
+          gender,
+          addressLine1,
+          addressLine2,
+          city,
+          state: addressState,
+          postalCode
+        });
+      }
+    } else if (currentStep === 3) {
+      isValid = validateStep3();
+      if (isValid) {
+        await updateProfessional({
+          specialization,
+          experience,
+          council,
+          registrationNumber,
+        });
+      }
     } else if (currentStep === 4) {
+      isValid = validateStep4();
+    } else if (currentStep === 5) {
       await updateAvailability({
         fee: consultationFee,
         languages: selectedLanguages,
         bio,
       });
+      isValid = true;
     }
 
-    // Navigate to next step or review
-    if (currentStep < 4) {
+    // Navigate to next step if valid
+    if (isValid && currentStep < 5) {
       setCurrentStep(currentStep + 1);
-    } else {
+      setErrors({}); // Clear errors when moving to next step
+    } else if (isValid && currentStep === 5) {
       router.push("/registration/review");
     }
   };
@@ -356,25 +507,31 @@ export function RegistrationForm() {
             <div className="grid grid-cols-2 gap-6">
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-gray-900">
-                  First Name
+                  First Name <span className="text-red-500">*</span>
                 </label>
                 <Input
                   placeholder="Jane"
                   value={firstName}
                   onChange={(e) => setFirstName(e.target.value)}
-                  className="border border-gray-300"
+                  className={`border ${errors.firstName ? "border-red-500" : "border-gray-300"}`}
                 />
+                {errors.firstName && (
+                  <p className="text-red-500 text-xs font-medium">{errors.firstName}</p>
+                )}
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-gray-900">
-                  Last Name
+                  Last Name <span className="text-red-500">*</span>
                 </label>
                 <Input
                   placeholder="Doe"
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
-                  className="border border-gray-300"
+                  className={`border ${errors.lastName ? "border-red-500" : "border-gray-300"}`}
                 />
+                {errors.lastName && (
+                  <p className="text-red-500 text-xs font-medium">{errors.lastName}</p>
+                )}
               </div>
             </div>
 
@@ -394,7 +551,7 @@ export function RegistrationForm() {
             {/* Phone Number */}
             <div className="space-y-2">
               <label className="text-sm font-semibold text-gray-900">
-                Phone Number
+                Phone Number <span className="text-red-500">*</span>
               </label>
               <div className="flex gap-2">
                 <select
@@ -411,14 +568,19 @@ export function RegistrationForm() {
                   placeholder="e.g., 555-123-4567"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  className="flex-1 border border-gray-300"
+                  className={`flex-1 border ${errors.phone ? "border-red-500" : "border-gray-300"}`}
                 />
               </div>
+              {errors.phone && (
+                <p className="text-red-500 text-xs font-medium">{errors.phone}</p>
+              )}
             </div>
 
             {/* Gender */}
             <div className="space-y-2">
-              <label className="text-sm font-semibold text-gray-900">Gender</label>
+              <label className="text-sm font-semibold text-gray-900">
+                Gender <span className="text-red-500">*</span>
+              </label>
               <div className="flex gap-2">
                 {["Male", "Female", "Non-binary", "Prefer not to say"].map(
                   (option) => (
@@ -436,6 +598,9 @@ export function RegistrationForm() {
                   )
                 )}
               </div>
+              {errors.gender && (
+                <p className="text-red-500 text-xs font-medium">{errors.gender}</p>
+              )}
             </div>
 
             {/* Date of Birth */}
@@ -449,80 +614,11 @@ export function RegistrationForm() {
                 onChange={(e) => setDob(e.target.value)}
                 max={new Date(new Date().setFullYear(new Date().getFullYear() - 20)).toISOString().split('T')[0]}
                 required
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                className={`w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 ${errors.dob ? "border-red-500" : "border-gray-300"}`}
               />
-            </div>
-
-            {/* Clinic Address Section */}
-            <div className="col-span-2 pt-4">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Clinic Address</h3>
-            </div>
-
-            {/* Address Line 1 */}
-            <div className="col-span-2 space-y-2">
-              <label className="text-sm font-semibold text-gray-900">
-                Address Line 1 <span className="text-red-500">*</span>
-              </label>
-              <Input
-                placeholder="Street address, clinic name"
-                value={addressLine1}
-                onChange={(e) => setAddressLine1(e.target.value)}
-                className="border border-gray-300"
-                required
-              />
-            </div>
-
-            {/* Address Line 2 */}
-            <div className="col-span-2 space-y-2">
-              <label className="text-sm font-semibold text-gray-900">
-                Address Line 2
-              </label>
-              <Input
-                placeholder="Apartment, suite, floor (optional)"
-                value={addressLine2}
-                onChange={(e) => setAddressLine2(e.target.value)}
-                className="border border-gray-300"
-              />
-            </div>
-
-            {/* City, State, Postal Code */}
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-gray-900">
-                City <span className="text-red-500">*</span>
-              </label>
-              <Input
-                placeholder="Mumbai"
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
-                className="border border-gray-300"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-gray-900">
-                State <span className="text-red-500">*</span>
-              </label>
-              <Input
-                placeholder="Maharashtra"
-                value={addressState}
-                onChange={(e) => setAddressState(e.target.value)}
-                className="border border-gray-300"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-gray-900">
-                Postal Code <span className="text-red-500">*</span>
-              </label>
-              <Input
-                placeholder="400001"
-                value={postalCode}
-                onChange={(e) => setPostalCode(e.target.value)}
-                className="border border-gray-300"
-                required
-              />
+              {errors.dob && (
+                <p className="text-red-500 text-xs font-medium">{errors.dob}</p>
+              )}
             </div>
 
             {/* Navigation Buttons */}
@@ -547,8 +643,119 @@ export function RegistrationForm() {
           </div>
         )}
 
-        {/* Step 2: Credentials */}
+        {/* Step 2: Clinic Address */}
         {currentStep === 2 && (
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-2xl font-bold text-black mb-2">
+                Step 2: Clinic Address
+              </h2>
+              <p className="text-gray-500 text-sm">
+                Provide your clinic location and contact details.
+              </p>
+            </div>
+
+            {/* Address Line 1 */}
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-gray-900">
+                Address Line 1 <span className="text-red-500">*</span>
+              </label>
+              <Input
+                placeholder="Street address, clinic name"
+                value={addressLine1}
+                onChange={(e) => setAddressLine1(e.target.value)}
+                className={`border ${errors.addressLine1 ? "border-red-500" : "border-gray-300"}`}
+                required
+              />
+              {errors.addressLine1 && (
+                <p className="text-red-500 text-xs font-medium">{errors.addressLine1}</p>
+              )}
+            </div>
+
+            {/* Address Line 2 */}
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-gray-900">
+                Address Line 2
+              </label>
+              <Input
+                placeholder="Apartment, suite, floor (optional)"
+                value={addressLine2}
+                onChange={(e) => setAddressLine2(e.target.value)}
+                className="border border-gray-300"
+              />
+            </div>
+
+            {/* City, State, Postal Code */}
+            <div className="grid grid-cols-3 gap-6">
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-gray-900">
+                  City <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  placeholder="Mumbai"
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  className={`border ${errors.city ? "border-red-500" : "border-gray-300"}`}
+                  required
+                />
+                {errors.city && (
+                  <p className="text-red-500 text-xs font-medium">{errors.city}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-gray-900">
+                  State <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  placeholder="Maharashtra"
+                  value={addressState}
+                  onChange={(e) => setAddressState(e.target.value)}
+                  className={`border ${errors.addressState ? "border-red-500" : "border-gray-300"}`}
+                  required
+                />
+                {errors.addressState && (
+                  <p className="text-red-500 text-xs font-medium">{errors.addressState}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-gray-900">
+                  Postal Code <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  placeholder="400001"
+                  value={postalCode}
+                  onChange={(e) => setPostalCode(e.target.value)}
+                  className={`border ${errors.postalCode ? "border-red-500" : "border-gray-300"}`}
+                  required
+                />
+                {errors.postalCode && (
+                  <p className="text-red-500 text-xs font-medium">{errors.postalCode}</p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-4 justify-between">
+              <Button
+                variant="outline"
+                onClick={handlePrevious}
+                className="text-gray-600"
+              >
+                Previous
+              </Button>
+              <Button
+                onClick={handleNext}
+                className="px-8 bg-teal-500 hover:bg-teal-600 text-white"
+              >
+                Next
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Step 3: Credentials */}
+        {currentStep === 3 && (
           <div className="space-y-6">
             <div>
               <h2 className="text-2xl font-bold text-black mb-2">
@@ -588,29 +795,54 @@ export function RegistrationForm() {
             <div className="grid grid-cols-2 gap-6">
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-gray-900">
-                  Medical Council
+                  Medical Council <span className="text-red-500">*</span>
                 </label>
-                <Input
-                  placeholder="e.g., Indian Medical Association"
+                <select
                   value={council}
                   onChange={(e) => setCouncil(e.target.value)}
-                  className="border border-gray-300"
-                />
+                  className={`w-full border rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-teal-500 ${errors.council ? "border-red-500" : "border-gray-300"}`}
+                >
+                  <option value="">Select a medical council</option>
+                  {MEDICAL_COUNCILS.map((councilName) => (
+                    <option key={councilName} value={councilName}>
+                      {councilName}
+                    </option>
+                  ))}
+                </select>
+                {errors.council && (
+                  <p className="text-red-500 text-xs font-medium">{errors.council}</p>
+                )}
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-gray-900">
-                  Registration Number
+                  Registration Number <span className="text-red-500">*</span>
                 </label>
                 <Input
                   placeholder="e.g., MCI123456"
                   value={registrationNumber}
                   onChange={(e) => setRegistrationNumber(e.target.value)}
-                  className="border border-gray-300"
+                  className={`border ${errors.registrationNumber ? "border-red-500" : "border-gray-300"}`}
                 />
+                {errors.registrationNumber && (
+                  <p className="text-red-500 text-xs font-medium">{errors.registrationNumber}</p>
+                )}
               </div>
             </div>
 
-            {/* Removed License Number - not in backend schema */}
+            <div className="space-y-2">
+              <label className="text-sm font-semibold text-gray-900">
+                License Number <span className="text-red-500">*</span>
+              </label>
+              <Input
+                placeholder="e.g., LIC123456"
+                value={licenseNumber}
+                onChange={(e) => setLicenseNumber(e.target.value)}
+                className={`border ${errors.licenseNumber ? "border-red-500" : "border-gray-300"}`}
+              />
+              {errors.licenseNumber && (
+                <p className="text-red-500 text-xs font-medium">{errors.licenseNumber}</p>
+              )}
+            </div>
 
             <div className="flex gap-3 pt-4 justify-between">
               <Button
@@ -630,12 +862,12 @@ export function RegistrationForm() {
           </div>
         )}
 
-        {/* Step 3: Documents */}
-        {currentStep === 3 && (
+        {/* Step 4: Documents */}
+        {currentStep === 4 && (
           <div className="space-y-6">
             <div>
               <h2 className="text-2xl font-bold text-black mb-2">
-                Step 3: Documents & Verification
+                Step 4: Documents & Verification
               </h2>
               <p className="text-gray-500 text-sm">
                 Upload your credentials and identification documents.
@@ -647,6 +879,7 @@ export function RegistrationForm() {
                 const docState = documentUploads[docType.key];
                 const isUploaded = docState?.uploaded;
                 const isUploading = docState?.uploading;
+                const uploadError = docState?.error;
 
                 // Get document status from application status
                 const existingDoc = applicationStatus?.documents.find(d => d.type === docType.key);
@@ -656,23 +889,33 @@ export function RegistrationForm() {
 
                 return (
                   <div key={docType.key}>
+                    <div className="space-y-2 mb-3">
+                      <label className="text-sm font-semibold text-gray-900">
+                        {docType.label} <span className="text-red-500">*</span>
+                        <span className="text-xs text-gray-500 font-normal ml-2">
+                          ({FILE_TYPE_LABELS[docType.key]})
+                        </span>
+                      </label>
+                    </div>
                     <input
                       type="file"
                       id={`file-${docType.key}`}
                       className="hidden"
-                      accept="image/*,application/pdf,video/*"
+                      accept={FILE_TYPE_REQUIREMENTS[docType.key]?.join(",")}
                       onChange={(e) => handleFileChange(docType.key, e)}
                       disabled={isApproved}
                     />
                     <div
-                      onClick={() => !isUploading && !isApproved && handleFileClick(docType.key)}
+                      onClick={() => !isUploading && !isApproved && document.getElementById(`file-${docType.key}`)?.click()}
                       className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${isApproved
                           ? "border-green-300 bg-green-50 cursor-not-allowed opacity-75"
                           : isRejected
                             ? "border-red-300 bg-red-50 cursor-pointer hover:border-red-400"
                             : isUploaded
                               ? "border-teal-500 bg-teal-50 cursor-pointer"
-                              : "border-gray-300 hover:border-teal-500 cursor-pointer"
+                              : uploadError
+                                ? "border-orange-300 bg-orange-50 cursor-pointer hover:border-orange-400"
+                                : "border-gray-300 hover:border-teal-500 cursor-pointer"
                         }`}
                     >
                       <div className="flex flex-col items-center gap-2">
@@ -681,6 +924,8 @@ export function RegistrationForm() {
                           <CheckCircle className="w-8 h-8 text-green-600" />
                         ) : isRejected ? (
                           <XCircle className="w-8 h-8 text-red-600" />
+                        ) : uploadError ? (
+                          <AlertCircle className="w-8 h-8 text-orange-600" />
                         ) : isUploaded ? (
                           <CheckCircle className="w-8 h-8 text-teal-500" />
                         ) : isUploading ? (
@@ -698,7 +943,7 @@ export function RegistrationForm() {
                         {isApproved ? (
                           <div className="space-y-1">
                             <p className="text-xs text-green-700 font-medium">
-                              Verified - No changes needed
+                              ✓ Verified - No changes needed
                             </p>
                             <p className="text-xs text-green-600">
                               {existingDoc?.originalName}
@@ -716,6 +961,15 @@ export function RegistrationForm() {
                               Click to upload new document
                             </p>
                           </div>
+                        ) : uploadError ? (
+                          <div className="space-y-1">
+                            <p className="text-xs text-orange-700 font-semibold">
+                              Upload Error
+                            </p>
+                            <p className="text-xs text-orange-600 bg-orange-100 px-2 py-1 rounded">
+                              {uploadError}
+                            </p>
+                          </div>
                         ) : isPending ? (
                           <div className="space-y-1">
                             <div className="flex items-center gap-1 justify-center">
@@ -731,7 +985,7 @@ export function RegistrationForm() {
                         ) : (
                           <p className="text-xs text-gray-500">
                             {isUploaded
-                              ? `${docState.file?.name}`
+                              ? `✓ ${docState.file?.name || 'Document uploaded'}`
                               : isUploading
                                 ? "Uploading..."
                                 : "Click to upload or drag & drop"}
@@ -739,6 +993,9 @@ export function RegistrationForm() {
                         )}
                       </div>
                     </div>
+                    {errors[docType.key] && (
+                      <p className="text-red-500 text-xs font-medium mt-2">{errors[docType.key]}</p>
+                    )}
                   </div>
                 );
               })}
@@ -762,12 +1019,12 @@ export function RegistrationForm() {
           </div>
         )}
 
-        {/* Step 4: Availability */}
-        {currentStep === 4 && (
+        {/* Step 5: Availability */}
+        {currentStep === 5 && (
           <div className="space-y-6">
             <div>
               <h2 className="text-2xl font-bold text-black mb-2">
-                Step 4: Availability & Preferences
+                Step 5: Availability & Preferences
               </h2>
               <p className="text-gray-500 text-sm">
                 Set your consultation schedule, fees, and language preferences.
