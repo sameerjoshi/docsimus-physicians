@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useState } from 'react';
-import { doctorService } from '../services/profile.service';
+import { profileService } from '../services/profile.service';
 import {
     ApplicationStatus,
     DoctorDocument,
@@ -64,7 +64,7 @@ export function useProfile(): UseProfileState & UseProfileActions {
     const fetchProfile = useCallback(async (): Promise<DoctorProfile | null> => {
         try {
             setState(prev => ({ ...prev, isLoading: true, error: null }));
-            const profile = await doctorService.getProfile();
+            const profile = await profileService.getProfile();
             setState(prev => ({
                 ...prev,
                 profile,
@@ -82,7 +82,7 @@ export function useProfile(): UseProfileState & UseProfileActions {
     const updateProfile = useCallback(async (data: UpdateDoctorProfileData): Promise<boolean> => {
         try {
             setState(prev => ({ ...prev, isUpdating: true, error: null }));
-            const updatedProfile = await doctorService.updateProfile(data);
+            const updatedProfile = await profileService.updateProfile(data);
             setState(prev => ({
                 ...prev,
                 profile: updatedProfile,
@@ -103,8 +103,8 @@ export function useProfile(): UseProfileState & UseProfileActions {
     ): Promise<boolean> => {
         try {
             setState(prev => ({ ...prev, isUpdating: true, error: null }));
-            const updateData = doctorService.convertStateToUpdateData(onboardingState);
-            const updatedProfile = await doctorService.updateProfile(updateData);
+            const updateData = profileService.convertStateToUpdateData(onboardingState);
+            const updatedProfile = await profileService.updateProfile(updateData);
             setState(prev => ({
                 ...prev,
                 profile: updatedProfile,
@@ -126,7 +126,7 @@ export function useProfile(): UseProfileState & UseProfileActions {
     const fetchAvailability = useCallback(async () => {
         try {
             setState(prev => ({ ...prev, isLoading: true, error: null }));
-            const availability = await doctorService.getAvailability();
+            const availability = await profileService.getAvailability();
             setState(prev => ({
                 ...prev,
                 availability,
@@ -141,7 +141,7 @@ export function useProfile(): UseProfileState & UseProfileActions {
     const toggleAvailability = useCallback(async (available: boolean): Promise<boolean> => {
         try {
             setState(prev => ({ ...prev, isUpdating: true, error: null }));
-            const result = await doctorService.toggleAvailability(available);
+            const result = await profileService.toggleAvailability(available);
             setState(prev => ({
                 ...prev,
                 availability: result.availableNow,
@@ -165,7 +165,7 @@ export function useProfile(): UseProfileState & UseProfileActions {
     const submitApplication = useCallback(async (): Promise<boolean> => {
         try {
             setState(prev => ({ ...prev, isUpdating: true, error: null }));
-            const updatedProfile = await doctorService.submitApplication();
+            const updatedProfile = await profileService.submitApplication();
             setState(prev => ({
                 ...prev,
                 profile: updatedProfile,
@@ -184,7 +184,7 @@ export function useProfile(): UseProfileState & UseProfileActions {
     const fetchApplicationStatus = useCallback(async () => {
         try {
             setState(prev => ({ ...prev, isLoading: true, error: null }));
-            const applicationStatus = await doctorService.getApplicationStatus();
+            const applicationStatus = await profileService.getApplicationStatus();
             setState(prev => ({
                 ...prev,
                 applicationStatus,
@@ -206,7 +206,7 @@ export function useProfile(): UseProfileState & UseProfileActions {
     ): Promise<DoctorDocument | null> => {
         try {
             setState(prev => ({ ...prev, isUploading: true, error: null }));
-            const document = await doctorService.uploadDocument(file, type);
+            const document = await profileService.uploadDocument(file, type);
             setState(prev => ({
                 ...prev,
                 documents: [...prev.documents, document],
@@ -225,7 +225,7 @@ export function useProfile(): UseProfileState & UseProfileActions {
     const fetchDocuments = useCallback(async () => {
         try {
             setState(prev => ({ ...prev, isLoading: true, error: null }));
-            const documents = await doctorService.getDocuments();
+            const documents = await profileService.getDocuments();
             setState(prev => ({
                 ...prev,
                 documents,
@@ -240,7 +240,7 @@ export function useProfile(): UseProfileState & UseProfileActions {
     const deleteDocument = useCallback(async (id: string): Promise<boolean> => {
         try {
             setState(prev => ({ ...prev, isUpdating: true, error: null }));
-            await doctorService.deleteDocument(id);
+            await profileService.deleteDocument(id);
             setState(prev => ({
                 ...prev,
                 documents: prev.documents.filter(doc => doc.id !== id),

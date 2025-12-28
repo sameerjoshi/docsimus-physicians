@@ -8,6 +8,7 @@ import { Mail, Lock, ArrowRight } from "lucide-react";
 import { authService } from "@/src/services/auth.service";
 import { fadeInUp } from "@/src/lib/animations";
 import { motion } from "framer-motion";
+import { useProfile } from "@/src/hooks/use-profile";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -62,12 +63,13 @@ export default function LoginPage() {
         case 'DOCTOR':
           // For doctors, try to fetch their profile to check status
           try {
-            const { doctorService } = await import('@/src/services/profile.service');
-            const profile = await doctorService.getProfile();
+            const { profile, fetchProfile } = useProfile();
 
-            if (profile.status === 'PENDING') {
+            await fetchProfile();
+
+            if (profile?.status === 'PENDING') {
               router.push('/application-status');
-            } else if (profile.status === 'VERIFIED') {
+            } else if (profile?.status === 'VERIFIED') {
               router.push('/dashboard');
             } else {
               router.push('/registration');

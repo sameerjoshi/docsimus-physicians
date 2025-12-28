@@ -7,7 +7,7 @@ import { useOnboarding } from "@/src/hooks/use-onboarding";
 import { motion } from "framer-motion";
 import { fadeInUp } from "@/src/lib/animations";
 import { Plus, Upload, CheckCircle, AlertCircle, XCircle, Clock } from "lucide-react";
-import { doctorService } from "@/src/services/profile.service";
+import { useProfile } from "@/src/hooks/use-profile";
 
 interface Step {
   number: number;
@@ -66,6 +66,7 @@ const FILE_TYPE_LABELS: Record<string, string> = {
 export function RegistrationForm() {
   const router = useRouter();
   const { state, updateProfile, updateAddress, updateProfessional, updateAvailability, loading } = useOnboarding();
+  const { profile, documents, fetchProfile, uploadDocument, fetchDocuments } = useProfile();
   const [currentStep, setCurrentStep] = useState(1);
 
   // Step 1: Personal Profile
@@ -152,7 +153,7 @@ export function RegistrationForm() {
     }));
 
     try {
-      await doctorService.uploadDocument(file, docType);
+      await uploadDocument(file, docType);
       setDocumentUploads(prev => ({
         ...prev,
         [docType]: { file, uploading: false, uploaded: true, error: undefined }
@@ -207,9 +208,9 @@ export function RegistrationForm() {
     const fetchData = async () => {
       try {
         // Fetch both documents and profile (which includes status and rejectionReason)
-        const [docs, profile] = await Promise.all([
-          doctorService.getDocuments(),
-          doctorService.getProfile(),
+        await Promise.all([
+          fetchDocuments(),
+          fetchProfile(),
         ]);
 
         // Set application status from profile
@@ -217,7 +218,7 @@ export function RegistrationForm() {
           setApplicationStatus({
             status: profile.status as any,
             rejectionReason: profile.rejectionReason,
-            documents: docs.map((doc: any) => ({
+            documents: documents.map((doc: any) => ({
               id: doc.id,
               type: doc.type,
               status: doc.status,
@@ -229,7 +230,7 @@ export function RegistrationForm() {
 
         const uploads: Record<string, { file: File | null; uploading: boolean; uploaded: boolean }> = {};
 
-        docs.forEach((doc: any) => {
+        documents.forEach((doc: any) => {
           uploads[doc.type] = {
             file: new File([], doc.originalName), // Placeholder file object
             uploading: false,
@@ -473,7 +474,7 @@ export function RegistrationForm() {
                       const file = e.target.files?.[0];
                       if (file) {
                         try {
-                          await doctorService.uploadDocument(file, "profilePhoto");
+                          await uploadDocument(file, "profilePhoto");
                         } catch (error) {
                           console.error("Upload failed:", error);
                         }

@@ -7,7 +7,7 @@ import {
     DocumentType,
 } from "@/src/types/onboarding";
 import { authService } from "@/src/services/auth.service";
-import { doctorService } from "@/src/services/profile.service";
+import { profileService } from "@/src/services/profile.service";
 import { ApiError } from "@/src/lib/api-client";
 import { DoctorProfile } from "../types/profile";
 
@@ -28,7 +28,7 @@ const convertBackendToState = async (profile: DoctorProfile): Promise<DoctorOnbo
     };
 
     try {
-        const documents = await doctorService.getDocuments();
+        const documents = await profileService.getDocuments();
         // Mark uploaded documents
         (documents as any[]).forEach((doc: any) => {
             if (doc.type && documentsState[doc.type as keyof typeof documentsState]) {
@@ -93,7 +93,7 @@ export function useOnboarding() {
             if (isAuth) {
                 try {
                     // Fetch doctor profile from backend
-                    const profile = await doctorService.getProfile();
+                    const profile = await profileService.getProfile();
                     const convertedState = await convertBackendToState(profile);
                     setState(convertedState);
                 } catch (err) {
@@ -165,7 +165,7 @@ export function useOnboarding() {
                 await authService.login({ email, password });
 
                 // Fetch doctor profile
-                const profile = await doctorService.getProfile();
+                const profile = await profileService.getProfile();
                 const convertedState = await convertBackendToState(profile);
                 setState(convertedState);
 
@@ -198,8 +198,8 @@ export function useOnboarding() {
             // Sync with backend
             if (isAuthenticated) {
                 try {
-                    const updateData = doctorService.convertStateToUpdateData({ profile } as Partial<DoctorOnboardingState>);
-                    await doctorService.updateProfile(updateData);
+                    const updateData = profileService.convertStateToUpdateData({ profile } as Partial<DoctorOnboardingState>);
+                    await profileService.updateProfile(updateData);
                 } catch (err) {
                     console.error("Failed to sync profile:", err);
                     setError("Failed to save profile changes");
@@ -216,8 +216,8 @@ export function useOnboarding() {
             // Sync with backend
             if (isAuthenticated) {
                 try {
-                    const updateData = doctorService.convertStateToUpdateData({ address: address } as Partial<DoctorOnboardingState>);
-                    await doctorService.updateProfile(updateData);
+                    const updateData = profileService.convertStateToUpdateData({ address: address } as Partial<DoctorOnboardingState>);
+                    await profileService.updateProfile(updateData);
                 } catch (err) {
                     console.error("Failed to sync profile:", err);
                     setError("Failed to save profile changes");
@@ -237,8 +237,8 @@ export function useOnboarding() {
             // Sync with backend
             if (isAuthenticated) {
                 try {
-                    const updateData = doctorService.convertStateToUpdateData({ professional } as Partial<DoctorOnboardingState>);
-                    await doctorService.updateProfile(updateData);
+                    const updateData = profileService.convertStateToUpdateData({ professional } as Partial<DoctorOnboardingState>);
+                    await profileService.updateProfile(updateData);
                 } catch (err) {
                     console.error("Failed to sync professional info:", err);
                     setError("Failed to save professional details");
@@ -275,8 +275,8 @@ export function useOnboarding() {
             // Sync with backend
             if (isAuthenticated) {
                 try {
-                    const updateData = doctorService.convertStateToUpdateData({ availability } as Partial<DoctorOnboardingState>);
-                    await doctorService.updateProfile(updateData);
+                    const updateData = profileService.convertStateToUpdateData({ availability } as Partial<DoctorOnboardingState>);
+                    await profileService.updateProfile(updateData);
                 } catch (err) {
                     console.error("Failed to sync availability:", err);
                     setError("Failed to save availability");
@@ -294,7 +294,7 @@ export function useOnboarding() {
         setLoading(true);
         setError(null);
         try {
-            await doctorService.submitApplication();
+            await profileService.submitApplication();
             setState((prev) => ({ ...prev, status: "pending" }));
             setLoading(false);
             return true;

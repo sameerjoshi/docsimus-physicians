@@ -2,17 +2,18 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { doctorService } from '@/src/services/profile.service';
 import { Card } from '@/src/components/ui/card';
 import { Button } from '@/src/components/ui/button';
 import { LoadingSpinner } from '@/src/components/loading-spinner';
 import { CheckCircle, Clock, XCircle, AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useProfile } from '@/src/hooks/use-profile';
 
 export default function ApplicationStatusPage() {
     const router = useRouter();
-    const [profile, setProfile] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+
+    const { profile, fetchProfile } = useProfile();
 
     useEffect(() => {
         loadProfile();
@@ -20,8 +21,7 @@ export default function ApplicationStatusPage() {
 
     const loadProfile = async () => {
         try {
-            const data = await doctorService.getProfile();
-            setProfile(data);
+            await fetchProfile();
         } catch (error) {
             console.error('Failed to load profile:', error);
         } finally {

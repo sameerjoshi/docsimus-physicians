@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { doctorService } from '@/src/services/profile.service';
 import { AppHeader } from '@/src/components/layout/app-header';
 import { Card } from '@/src/components/ui/card';
 import { Button } from '@/src/components/ui/button';
@@ -15,12 +14,14 @@ import {
 import { motion } from 'framer-motion';
 import { staggerContainer, staggerItem } from '@/src/lib/animations';
 import { toast } from 'sonner';
+import { useProfile } from '@/src/hooks/use-profile';
 
 export default function ProfilePage() {
-  const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<any>({});
+
+  const { profile, fetchProfile, updateProfile } = useProfile();
 
   useEffect(() => {
     loadProfile();
@@ -29,8 +30,7 @@ export default function ProfilePage() {
   const loadProfile = async () => {
     try {
       setLoading(true);
-      const data = await doctorService.getProfile();
-      setProfile(data);
+      const data = await fetchProfile();
       setForm(data);
     } catch (error) {
       toast.error('Failed to load profile');
@@ -41,8 +41,7 @@ export default function ProfilePage() {
 
   const handleSave = async () => {
     try {
-      await doctorService.updateProfile(form);
-      setProfile(form);
+      await updateProfile(form);
       setEditing(false);
       toast.success('Profile updated successfully');
     } catch (error) {

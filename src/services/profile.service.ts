@@ -115,4 +115,4 @@ export class ProfileService {
     }
 }
 
-export const doctorService = new ProfileService();
+export const profileService = new ProfileService();
