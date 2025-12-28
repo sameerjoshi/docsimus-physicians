@@ -7,7 +7,7 @@ import {
     InstantConsultationRequest,
     UpdateConsultationNotesDto,
 } from '../types/consultations';
-import { useToast } from './use-toast';
+import { toast } from 'sonner';
 
 // ==========================================
 // CONSULTATIONS HOOK TYPES
@@ -34,8 +34,6 @@ interface UseConsultationsActions {
 // ==========================================
 
 export function useConsultations(): UseConsultationsState & UseConsultationsActions {
-    const toast = useToast();
-
     const [state, setState] = useState<UseConsultationsState>({
         pendingRequests: [],
         consultation: null,

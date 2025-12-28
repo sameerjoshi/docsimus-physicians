@@ -15,9 +15,9 @@ import { AppHeader } from '@/src/components/layout/app-header';
 import { Card } from '@/src/components/ui/card';
 import { Button } from '@/src/components/ui/button';
 import { VideoTile } from '@/src/components/consultations/VideoTile';
-import { useDailyCall } from '@/src/hooks/useDailyCall';
-import { useConsultations } from '@/src/hooks/useConsultations';
-import { useConsultationSocket } from '@/src/hooks/useConsultationSocket';
+import { useDailyCall } from '@/src/hooks/use-daily-call';
+import { useConsultations } from '@/src/hooks/use-consultations';
+import { useConsultationSocket } from '@/src/hooks/use-consultation-socket';
 import {
   Consultation,
   UpdateConsultationNotesDto,

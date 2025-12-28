@@ -6,8 +6,8 @@ import {
     CreateTimeSlotPayload,
     UpdateTimeSlotPayload
 } from "../types/time-slots";
-import { useToast } from "./use-toast";
 import { timeSlotsService } from "../services/time-slots.service";
+import { toast } from "sonner";
 
 interface UseTimeSlotsState {
     weeklySchedule: WeeklySchedule | null;
@@ -24,8 +24,6 @@ interface UseTimeSlotsAction {
 }
 
 export function useTimeSlots(): UseTimeSlotsState & UseTimeSlotsAction {
-    const toast = useToast();
-
     const [state, setState] = useState<UseTimeSlotsState>({
         weeklySchedule: [],
         timeSlots: [],

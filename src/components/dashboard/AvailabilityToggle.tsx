@@ -1,7 +1,7 @@
 'use client';
 
 import { Card } from '@/src/components/ui/card';
-import { useProfile } from '@/src/hooks/useProfile';
+import { useProfile } from '@/src/hooks/use-profile';
 import { useEffect } from 'react';
 
 export function AvailabilityToggle() {

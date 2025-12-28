@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { doctorService } from '@/src/services/profile.service';
 import { AppHeader } from '@/src/components/layout/app-header';
 import { Card } from '@/src/components/ui/card';
@@ -14,12 +13,10 @@ import {
   FileText, CheckCircle, Clock, Edit, Save, Activity
 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { fadeInUp, staggerContainer, staggerItem } from '@/src/lib/animations';
-import { useToast } from '@/src/hooks/use-toast';
+import { staggerContainer, staggerItem } from '@/src/lib/animations';
+import { toast } from 'sonner';
 
 export default function ProfilePage() {
-  const router = useRouter();
-  const toast = useToast();
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);

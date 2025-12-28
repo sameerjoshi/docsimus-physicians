@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Input, Button } from "@/src/components/ui";
-import { useOnboardingAPI } from "@/src/hooks/useOnboardingAPI";
+import { useOnboarding } from "@/src/hooks/use-onboarding";
 import { motion } from "framer-motion";
 import { fadeInUp } from "@/src/lib/animations";
 import { Plus, Upload, CheckCircle, AlertCircle, XCircle, Clock } from "lucide-react";
@@ -65,7 +65,7 @@ const FILE_TYPE_LABELS: Record<string, string> = {
 
 export function RegistrationForm() {
   const router = useRouter();
-  const { state, updateProfile, updateAddress, updateProfessional, updateAvailability, loading } = useOnboardingAPI();
+  const { state, updateProfile, updateAddress, updateProfessional, updateAvailability, loading } = useOnboarding();
   const [currentStep, setCurrentStep] = useState(1);
 
   // Step 1: Personal Profile

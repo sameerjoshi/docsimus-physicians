@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { IncomingRequestPopup } from '../consultations/IncomingRequestPopup';
-import { useConsultationSocket } from '@/src/hooks/useConsultationSocket';
+import { useConsultationSocket } from '@/src/hooks/use-consultation-socket';
 import { ConsultationRequestEvent, ConsultationRequestCancelledEvent } from '@/src/types/consultations';
 import { toast } from 'sonner';
 

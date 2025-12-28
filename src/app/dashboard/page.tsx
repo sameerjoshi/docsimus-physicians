@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAppointments } from '@/src/hooks/useAppointments';
+import { useAppointments } from '@/src/hooks/use-appointments';
 import { RouteGuard } from '@/src/components/RouteGuard';
 import { AppHeader } from '@/src/components/layout/app-header';
 import { Card } from '@/src/components/ui/card';
@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { staggerContainer, staggerItem } from '@/src/lib/animations';
-import { useProfile } from '@/src/hooks/useProfile';
+import { useProfile } from '@/src/hooks/use-profile';
 
 export default function DashboardPage() {
   const router = useRouter();

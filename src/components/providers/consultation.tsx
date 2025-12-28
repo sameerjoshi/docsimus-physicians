@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useCallback, useState, useEffect, useMemo } from 'react';
-import { useConsultationSocket } from '../../hooks/useConsultationSocket';
+import { useConsultationSocket } from '../../hooks/use-consultation-socket';
 import {
   ConsultationRequestEvent,
   ConsultationNotification,

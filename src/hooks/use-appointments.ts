@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { appointmentsService } from '../services/appointments.service';
-import { useToast } from './use-toast';
 import { Appointment, QueryAppointmentsParams } from '../types/appointments';
+import { toast } from 'sonner';
 
 interface UseAppointmentsState {
     appointments: Appointment[];
@@ -20,8 +20,6 @@ interface UseAppointmentsActions {
 }
 
 export function useAppointments(): UseAppointmentsState & UseAppointmentsActions {
-    const toast = useToast();
-
     const [state, setState] = useState<UseAppointmentsState>({
         appointments: [],
         todayAppointments: [],

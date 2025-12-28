@@ -9,7 +9,7 @@ import {
     UpdateDoctorProfileData,
 } from '../types/profile';
 import { DoctorOnboardingState } from '../types/onboarding';
-import { useToast } from './use-toast';
+import { toast } from 'sonner';
 
 // ==========================================
 // PROFILE HOOK TYPES
@@ -46,8 +46,6 @@ interface UseProfileActions {
 // ==========================================
 
 export function useProfile(): UseProfileState & UseProfileActions {
-    const toast = useToast();
-
     const [state, setState] = useState<UseProfileState>({
         profile: null,
         documents: [],

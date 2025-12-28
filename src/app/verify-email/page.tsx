@@ -9,12 +9,11 @@ import { CheckCircle, XCircle, Mail } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { fadeInUp } from '@/src/lib/animations';
 import { authService } from '@/src/services/auth.service';
-import { useToast } from '@/src/hooks/use-toast';
+import { toast } from 'sonner';
 
 function VerifyEmailContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const toast = useToast();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [message, setMessage] = useState('');
 

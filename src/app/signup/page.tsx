@@ -5,13 +5,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input } from "@/src/components/ui";
 import { Mail, Lock, ArrowRight } from "lucide-react";
-import { useOnboardingAPI } from "@/src/hooks/useOnboardingAPI";
+import { useOnboarding } from "@/src/hooks/use-onboarding";
 import { fadeInUp } from "@/src/lib/animations";
 import { motion } from "framer-motion";
 
 export default function SignupPage() {
   const router = useRouter();
-  const { registerUser, loading } = useOnboardingAPI();
+  const { registerUser, loading } = useOnboarding();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");

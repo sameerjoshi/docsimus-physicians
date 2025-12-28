@@ -1,18 +1,17 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useOnboardingAPI } from '@/src/hooks/useOnboardingAPI';
+import { useOnboarding } from '@/src/hooks/use-onboarding';
 import { Button } from '@/src/components/ui/button';
 import { Card } from '@/src/components/ui/card';
 import { motion } from 'framer-motion';
 import { fadeInUp, staggerContainer, staggerItem } from '@/src/lib/animations';
 import { CheckCircle, Edit, MapPin, Briefcase, Calendar, DollarSign } from 'lucide-react';
-import { useToast } from '@/src/hooks/use-toast';
+import { toast } from 'sonner';
 
 export default function ReviewPage() {
   const router = useRouter();
-  const { state, submitApplication, loading } = useOnboardingAPI();
-  const toast = useToast();
+  const { state, submitApplication, loading } = useOnboarding();
 
   const handleSubmit = async () => {
     const success = await submitApplication();

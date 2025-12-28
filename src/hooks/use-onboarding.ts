@@ -76,7 +76,7 @@ const convertBackendToState = async (profile: DoctorProfile): Promise<DoctorOnbo
     };
 };
 
-export function useOnboardingAPI() {
+export function useOnboarding() {
     const [state, setState] = useState<DoctorOnboardingState>(
         cloneState(DEFAULT_ONBOARDING_STATE)
     );
@@ -334,7 +334,3 @@ export function useOnboardingAPI() {
         clearError: () => setError(null),
     };
 }
-
-// Keep original hook as useOnboarding for backward compatibility
-export { useOnboardingAPI as useOnboarding };
-export { useOnboardingAPI as useDoctorOnboarding };

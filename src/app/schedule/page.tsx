@@ -28,14 +28,14 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { staggerContainer, staggerItem } from '@/src/lib/animations';
-import { useAppointments } from '@/src/hooks/useAppointments';
+import { useAppointments } from '@/src/hooks/use-appointments';
 import { Appointment } from '@/src/types/appointments';
 import { CreateTimeSlotPayload } from '@/src/types/time-slots';
-import { useTimeSlots } from '@/src/hooks/useTimeSlots';
-import { useConsultations } from '@/src/hooks/useConsultations';
-import { useProfile } from '@/src/hooks/useProfile';
-import { useConsultationSocket } from '@/src/hooks/useConsultationSocket';
-import { useToast } from '@/src/hooks/use-toast';
+import { useTimeSlots } from '@/src/hooks/use-time-slots';
+import { useConsultations } from '@/src/hooks/use-consultations';
+import { useProfile } from '@/src/hooks/use-profile';
+import { useConsultationSocket } from '@/src/hooks/use-consultation-socket';
+import { toast } from 'sonner';
 
 export default function SchedulePage() {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -66,7 +66,6 @@ export default function SchedulePage() {
   const { pendingRequests, fetchPendingRequests } = useConsultations();
   const { availability, fetchAvailability, toggleAvailability } = useProfile();
   const { respondToRequest } = useConsultationSocket();
-  const toast = useToast();
 
   const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const daysOfWeekFull = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
