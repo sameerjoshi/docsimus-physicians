@@ -1,90 +1,23 @@
 import { apiClient } from '../lib/api-client';
 import { API_ENDPOINTS } from '../lib/api-config';
 import { DoctorOnboardingState } from '../types/onboarding';
+import { ApplicationStatus, DoctorDocument, DoctorProfile, UpdateDoctorProfileData } from '../types/profile';
 
-export interface DoctorProfile {
-    id: string;
-    userId: string;
-    firstName: string;
-    lastName: string;
-    phone: string;
-    dob: string;
-    addressLine1?: string;
-    addressLine2?: string;
-    city?: string;
-    state?: string;
-    postalCode?: string;
-    registrationNumber: string;
-    council: string;
-    specialization: string;
-    experience: string;
-    bio?: string;
-    consultationFee?: number;
-    languages?: string[];
-    availableNow: boolean;
-    weeklyAvailability?: Record<string, string>;
-    status: string;
-    rejectionReason?: string; // Added for rejected applications
-    createdAt: string;
-    updatedAt: string;
-    submittedAt?: string;
-    verifiedAt?: string;
-    documents?: any[];
-    user?: {
-        email: string;
-        name: string | null;
-    };
-}
-
-export interface UpdateDoctorProfileData {
-    firstName?: string;
-    lastName?: string;
-    phone?: string;
-    dob?: string;
-    addressLine1?: string;
-    addressLine2?: string;
-    city?: string;
-    state?: string;
-    postalCode?: string;
-    registrationNumber?: string;
-    council?: string;
-    specialization?: string;
-    experience?: string;
-    bio?: string;
-    consultationFee?: number;
-    languages?: string[];
-    availableNow?: boolean;
-    weeklyAvailability?: Record<string, string>;
-}
-
-export interface ApplicationStatus {
-    status: string;
-    submittedAt?: string;
-    verifiedAt?: string;
-    createdAt: string;
-    updatedAt: string;
-}
-
-export interface DoctorDocument {
-    id: string;
-    type: string;
-    fileName: string;
-    originalName: string;
-    mimeType: string;
-    size: number;
-    path: string;
-    url: string;
-    status: string;
-    createdAt: string;
-}
-
-export class DoctorService {
+export class ProfileService {
     async getProfile(): Promise<DoctorProfile> {
         return apiClient.get<DoctorProfile>(API_ENDPOINTS.doctors.profile);
     }
 
     async updateProfile(data: UpdateDoctorProfileData): Promise<DoctorProfile> {
         return apiClient.patch<DoctorProfile>(API_ENDPOINTS.doctors.profile, data);
+    }
+
+    async getAvailability(): Promise<boolean> {
+        return apiClient.get<boolean>(API_ENDPOINTS.doctors.availability);
+    }
+
+    async toggleAvailability(available: boolean): Promise<{ id: string; availableNow: boolean }> {
+        return apiClient.post<{ id: string; availableNow: boolean }>(API_ENDPOINTS.doctors.toggleAvailability, { available });
     }
 
     async submitApplication(): Promise<DoctorProfile> {
@@ -111,11 +44,15 @@ export class DoctorService {
             if (state.profile.lastName !== undefined) updateData.lastName = state.profile.lastName;
             if (state.profile.phone !== undefined) updateData.phone = state.profile.phone;
             if (state.profile.dob !== undefined) updateData.dob = state.profile.dob;
-            if (state.profile.addressLine1 !== undefined) updateData.addressLine1 = state.profile.addressLine1;
-            if (state.profile.addressLine2 !== undefined) updateData.addressLine2 = state.profile.addressLine2;
-            if (state.profile.city !== undefined) updateData.city = state.profile.city;
-            if (state.profile.state !== undefined) updateData.state = state.profile.state;
-            if (state.profile.postalCode !== undefined) updateData.postalCode = state.profile.postalCode;
+        }
+
+        // Address info
+        if (state.address) {
+            if (state.address.addressLine1 !== undefined) updateData.addressLine1 = state.address.addressLine1;
+            if (state.address.addressLine2 !== undefined) updateData.addressLine2 = state.address.addressLine2;
+            if (state.address.city !== undefined) updateData.city = state.address.city;
+            if (state.address.state !== undefined) updateData.state = state.address.state;
+            if (state.address.postalCode !== undefined) updateData.postalCode = state.address.postalCode;
         }
 
         // Professional info
@@ -178,4 +115,4 @@ export class DoctorService {
     }
 }
 
-export const doctorService = new DoctorService();
+export const doctorService = new ProfileService();

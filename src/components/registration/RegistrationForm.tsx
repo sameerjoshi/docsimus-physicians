@@ -7,7 +7,7 @@ import { useOnboardingAPI } from "@/src/hooks/useOnboardingAPI";
 import { motion } from "framer-motion";
 import { fadeInUp } from "@/src/lib/animations";
 import { Plus, Upload, CheckCircle, AlertCircle, XCircle, Clock } from "lucide-react";
-import { doctorService } from "@/src/services/doctor.service";
+import { doctorService } from "@/src/services/profile.service";
 
 interface Step {
   number: number;
@@ -65,7 +65,7 @@ const FILE_TYPE_LABELS: Record<string, string> = {
 
 export function RegistrationForm() {
   const router = useRouter();
-  const { state, updateProfile, updateProfessional, updateAvailability, loading } = useOnboardingAPI();
+  const { state, updateProfile, updateAddress, updateProfessional, updateAvailability, loading } = useOnboardingAPI();
   const [currentStep, setCurrentStep] = useState(1);
 
   // Step 1: Personal Profile
@@ -183,11 +183,11 @@ export function RegistrationForm() {
     }
 
     // Load address
-    setAddressLine1(state.profile.addressLine1 || "");
-    setAddressLine2(state.profile.addressLine2 || "");
-    setCity(state.profile.city || "");
-    setAddressState(state.profile.state || "");
-    setPostalCode(state.profile.postalCode || "");
+    setAddressLine1(state.address.addressLine1 || "");
+    setAddressLine2(state.address.addressLine2 || "");
+    setCity(state.address.city || "");
+    setAddressState(state.address.state || "");
+    setPostalCode(state.address.postalCode || "");
 
     // Load professional info
     setSpecialization(state.professional.specialization || "");
@@ -324,23 +324,12 @@ export function RegistrationForm() {
           dob,
           email,
           gender,
-          addressLine1,
-          addressLine2,
-          city,
-          state: addressState,
-          postalCode
         });
       }
     } else if (currentStep === 2) {
       isValid = validateStep2();
       if (isValid) {
-        await updateProfile({
-          firstName,
-          lastName,
-          phone,
-          dob,
-          email,
-          gender,
+        await updateAddress({
           addressLine1,
           addressLine2,
           city,
@@ -908,14 +897,14 @@ export function RegistrationForm() {
                     <div
                       onClick={() => !isUploading && !isApproved && document.getElementById(`file-${docType.key}`)?.click()}
                       className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${isApproved
-                          ? "border-green-300 bg-green-50 cursor-not-allowed opacity-75"
-                          : isRejected
-                            ? "border-red-300 bg-red-50 cursor-pointer hover:border-red-400"
-                            : isUploaded
-                              ? "border-teal-500 bg-teal-50 cursor-pointer"
-                              : uploadError
-                                ? "border-orange-300 bg-orange-50 cursor-pointer hover:border-orange-400"
-                                : "border-gray-300 hover:border-teal-500 cursor-pointer"
+                        ? "border-green-300 bg-green-50 cursor-not-allowed opacity-75"
+                        : isRejected
+                          ? "border-red-300 bg-red-50 cursor-pointer hover:border-red-400"
+                          : isUploaded
+                            ? "border-teal-500 bg-teal-50 cursor-pointer"
+                            : uploadError
+                              ? "border-orange-300 bg-orange-50 cursor-pointer hover:border-orange-400"
+                              : "border-gray-300 hover:border-teal-500 cursor-pointer"
                         }`}
                     >
                       <div className="flex flex-col items-center gap-2">

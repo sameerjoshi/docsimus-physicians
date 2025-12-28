@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { doctorService } from '@/src/services/doctor.service';
+import { doctorService } from '@/src/services/profile.service';
 import { Card } from '@/src/components/ui/card';
 import { Button } from '@/src/components/ui/button';
 import { LoadingSpinner } from '@/src/components/loading-spinner';

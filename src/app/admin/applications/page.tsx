@@ -118,13 +118,13 @@ export default function AdminApplicationsPage() {
                 <Card className="p-4">
                     <p className="text-xs text-muted-foreground">Under Review</p>
                     <p className="text-2xl font-bold text-blue-600">
-                        {applications.filter(a => a.status === "Under Review").length}
+                        {applications.filter(a => a.status === 'PENDING').length}
                     </p>
                 </Card>
                 <Card className="p-4">
                     <p className="text-xs text-muted-foreground">Verified</p>
                     <p className="text-2xl font-bold text-green-600">
-                        {applications.filter(a => a.status === "Verified").length}
+                        {applications.filter(a => a.status === 'VERIFIED').length}
                     </p>
                 </Card>
             </div>

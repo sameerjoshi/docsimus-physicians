@@ -21,6 +21,9 @@ export interface DoctorProfile {
   dob: string;
   gender?: string;
   photo?: string;
+}
+
+export interface DoctorAddress {
   addressLine1?: string;
   addressLine2?: string;
   city?: string;
@@ -46,6 +49,7 @@ export interface DoctorAvailability {
 export interface DoctorOnboardingState {
   auth: { email: string };
   profile: DoctorProfile;
+  address: DoctorAddress;
   professional: DoctorProfessional;
   documents: Record<DocumentType, DocumentUpload>;
   availability: DoctorAvailability;
@@ -86,6 +90,8 @@ export const DEFAULT_ONBOARDING_STATE: DoctorOnboardingState = {
     email: "",
     dob: "",
     photo: "",
+  },
+  address: {
     addressLine1: "",
     addressLine2: "",
     city: "",

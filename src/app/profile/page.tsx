@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { doctorService } from '@/src/services/doctor.service';
+import { doctorService } from '@/src/services/profile.service';
 import { AppHeader } from '@/src/components/layout/app-header';
 import { Card } from '@/src/components/ui/card';
 import { Button } from '@/src/components/ui/button';
@@ -130,8 +130,8 @@ export default function ProfilePage() {
                       {profile?.specialization || 'General Physician'}
                     </p>
                     <span className={`inline-flex items-center gap-1 px-2 py-1 mt-2 rounded-full text-xs font-medium ${isPending
-                        ? 'bg-amber-600 text-white'
-                        : 'bg-green-600 text-white'
+                      ? 'bg-amber-600 text-white'
+                      : 'bg-green-600 text-white'
                       }`}>
                       {isPending ? <><Clock className="h-3 w-3" /> Under Review</> : <><CheckCircle className="h-3 w-3" /> Verified</>}
                     </span>

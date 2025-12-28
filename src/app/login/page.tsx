@@ -62,7 +62,7 @@ export default function LoginPage() {
         case 'DOCTOR':
           // For doctors, try to fetch their profile to check status
           try {
-            const { doctorService } = await import('@/src/services/doctor.service');
+            const { doctorService } = await import('@/src/services/profile.service');
             const profile = await doctorService.getProfile();
 
             if (profile.status === 'PENDING') {

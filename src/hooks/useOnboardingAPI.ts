@@ -7,8 +7,9 @@ import {
     DocumentType,
 } from "@/src/types/onboarding";
 import { authService } from "@/src/services/auth.service";
-import { doctorService, DoctorProfile } from "@/src/services/doctor.service";
+import { doctorService } from "@/src/services/profile.service";
 import { ApiError } from "@/src/lib/api-client";
+import { DoctorProfile } from "../types/profile";
 
 const STORAGE_KEY = "doctor-onboarding-state";
 
@@ -49,6 +50,8 @@ const convertBackendToState = async (profile: DoctorProfile): Promise<DoctorOnbo
             phone: profile.phone || "",
             email: profile.user?.email || "",
             dob: profile.dob ? profile.dob.split('T')[0] : "",
+        },
+        address: {
             addressLine1: profile.addressLine1 || "",
             addressLine2: profile.addressLine2 || "",
             city: profile.city || "",
@@ -206,6 +209,24 @@ export function useOnboardingAPI() {
         [isAuthenticated]
     );
 
+    const updateAddress = useCallback(
+        async (address: Partial<DoctorOnboardingState["address"]>) => {
+            setState((prev) => ({ ...prev, address: { ...prev.address, ...address } }));
+
+            // Sync with backend
+            if (isAuthenticated) {
+                try {
+                    const updateData = doctorService.convertStateToUpdateData({ address: address } as Partial<DoctorOnboardingState>);
+                    await doctorService.updateProfile(updateData);
+                } catch (err) {
+                    console.error("Failed to sync profile:", err);
+                    setError("Failed to save profile changes");
+                }
+            }
+        },
+        [isAuthenticated]
+    );
+
     const updateProfessional = useCallback(
         async (professional: Partial<DoctorOnboardingState["professional"]>) => {
             setState((prev) => ({
@@ -303,6 +324,7 @@ export function useOnboardingAPI() {
         loginUser,
         logout,
         updateProfile,
+        updateAddress,
         updateProfessional,
         updateDocument,
         updateAvailability,

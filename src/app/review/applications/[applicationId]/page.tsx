@@ -500,7 +500,7 @@ export default function ApplicationDetailPage({ params }: PageProps) {
                   onClick={handleApprove}
                   disabled={actionLoading}
                 >
-                  {actionLoading ? '...' : '✓ Approve Application'}
+                  {actionLoading ? '...' : 'Approve Application'}
                 </Button>
                 <Button
                   variant="destructive"
@@ -509,7 +509,7 @@ export default function ApplicationDetailPage({ params }: PageProps) {
                   onClick={handleReject}
                   disabled={actionLoading}
                 >
-                  {actionLoading ? '...' : '✗ Reject Application'}
+                  {actionLoading ? '...' : 'Reject Application'}
                 </Button>
               </div>
             )}
