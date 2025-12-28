@@ -23,7 +23,6 @@ export function AppHeader() {
     const navItems = [
         { href: '/dashboard', label: 'Dashboard' },
         { href: '/patients', label: 'Patients' },
-        { href: '/consultations', label: 'Consultations' },
         { href: '/schedule', label: 'Schedule' },
         { href: '/earnings', label: 'Earnings' },
         { href: '/profile', label: 'Profile' },

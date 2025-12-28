@@ -1,10 +1,6 @@
 import { apiClient } from '../lib/api-client';
 import { API_ENDPOINTS } from '../lib/api-config';
-import {
-    Consultation,
-    ConsultationHistoryResponse,
-    UpdateConsultationNotesDto,
-} from '../types/consultations';
+import { Consultation, InstantConsultationRequest, UpdateConsultationNotesDto } from '../types/consultations';
 
 // ==========================================
 // CONSULTATIONS SERVICE
@@ -12,19 +8,17 @@ import {
 
 export class ConsultationsService {
     /**
-     * Get consultation history for the doctor
+     * Get pending instant consultation requests
      */
-    async getMyConsultations(
-        limit: number = 20,
-        offset: number = 0
-    ): Promise<ConsultationHistoryResponse> {
-        const params = new URLSearchParams({
-            limit: limit.toString(),
-            offset: offset.toString(),
-        });
-        return apiClient.get<ConsultationHistoryResponse>(
-            `${API_ENDPOINTS.doctorConsultations.list}?${params}`
-        );
+    async getPendingRequests(): Promise<InstantConsultationRequest[]> {
+        return apiClient.get<InstantConsultationRequest[]>(API_ENDPOINTS.consultations.pendingRequests);
+    }
+
+    /**
+     * Create a consultation room for an appointment
+     */
+    async createConsultation(appointmentId: string): Promise<Consultation> {
+        return apiClient.post<Consultation>(API_ENDPOINTS.consultations.create, { appointmentId });
     }
 
     /**
@@ -32,7 +26,7 @@ export class ConsultationsService {
      */
     async getConsultation(consultationId: string): Promise<Consultation> {
         return apiClient.get<Consultation>(
-            API_ENDPOINTS.doctorConsultations.getById(consultationId)
+            API_ENDPOINTS.consultations.getById(consultationId)
         );
     }
 
@@ -44,17 +38,8 @@ export class ConsultationsService {
         notes: UpdateConsultationNotesDto
     ): Promise<Consultation> {
         return apiClient.patch<Consultation>(
-            API_ENDPOINTS.doctorConsultations.updateNotes(consultationId),
+            API_ENDPOINTS.consultations.updateNotes(consultationId),
             notes
-        );
-    }
-
-    /**
-     * End a consultation
-     */
-    async endConsultation(consultationId: string): Promise<Consultation> {
-        return apiClient.post<Consultation>(
-            API_ENDPOINTS.doctorConsultations.end(consultationId)
         );
     }
 }

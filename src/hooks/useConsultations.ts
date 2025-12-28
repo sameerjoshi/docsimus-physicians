@@ -1,141 +1,143 @@
 'use client';
 
-import { useState, useCallback } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useCallback, useState } from 'react';
 import { consultationsService } from '../services/consultations.service';
 import {
     Consultation,
-    ConsultationHistoryResponse,
+    InstantConsultationRequest,
     UpdateConsultationNotesDto,
 } from '../types/consultations';
-import { toast } from 'sonner';
+import { useToast } from './use-toast';
 
-// Query keys
-const CONSULTATION_KEYS = {
-    all: ['consultations'] as const,
-    history: (limit: number, offset: number) =>
-        [...CONSULTATION_KEYS.all, 'history', { limit, offset }] as const,
-    detail: (id: string) => [...CONSULTATION_KEYS.all, 'detail', id] as const,
-};
+// ==========================================
+// CONSULTATIONS HOOK TYPES
+// ==========================================
+
+interface UseConsultationsState {
+    pendingRequests: InstantConsultationRequest[];
+    consultation: Consultation | null;
+    isLoading: boolean;
+    error: string | null;
+}
+
+interface UseConsultationsActions {
+    fetchPendingRequests: () => Promise<void>;
+    createConsultation: (appointmentId: string) => Promise<boolean>;
+    fetchConsultation: (consultationId: string) => Promise<void>;
+    updateNotes: (consultationId: string, notes: UpdateConsultationNotesDto) => Promise<boolean>;
+    clearConsultation: () => void;
+    clearError: () => void;
+}
 
 // ==========================================
 // CONSULTATIONS HOOK
 // ==========================================
 
-export function useConsultationHistory(limit: number = 20, offset: number = 0) {
-    return useQuery({
-        queryKey: CONSULTATION_KEYS.history(limit, offset),
-        queryFn: () => consultationsService.getMyConsultations(limit, offset),
-        staleTime: 30 * 1000, // 30 seconds
+export function useConsultations(): UseConsultationsState & UseConsultationsActions {
+    const toast = useToast();
+
+    const [state, setState] = useState<UseConsultationsState>({
+        pendingRequests: [],
+        consultation: null,
+        isLoading: false,
+        error: null,
     });
-}
 
-export function useConsultationDetail(consultationId: string | null) {
-    return useQuery({
-        queryKey: CONSULTATION_KEYS.detail(consultationId || ''),
-        queryFn: () => consultationsService.getConsultation(consultationId!),
-        enabled: !!consultationId,
-        staleTime: 10 * 1000, // 10 seconds
-    });
-}
-
-export function useUpdateConsultationNotes() {
-    const queryClient = useQueryClient();
-
-    return useMutation({
-        mutationFn: ({
-            consultationId,
-            notes,
-        }: {
-            consultationId: string;
-            notes: UpdateConsultationNotesDto;
-        }) => consultationsService.updateNotes(consultationId, notes),
-        onSuccess: (data, variables) => {
-            // Update the cache
-            queryClient.setQueryData(
-                CONSULTATION_KEYS.detail(variables.consultationId),
-                data
-            );
-            // Invalidate history to refresh
-            queryClient.invalidateQueries({ queryKey: CONSULTATION_KEYS.all });
-            toast.success('Notes updated successfully');
-        },
-        onError: (error: any) => {
-            toast.error('Failed to update notes', {
-                description: error.message || 'Please try again',
-            });
-        },
-    });
-}
-
-export function useEndConsultation() {
-    const queryClient = useQueryClient();
-
-    return useMutation({
-        mutationFn: (consultationId: string) =>
-            consultationsService.endConsultation(consultationId),
-        onSuccess: (data, consultationId) => {
-            // Update the cache
-            queryClient.setQueryData(
-                CONSULTATION_KEYS.detail(consultationId),
-                data
-            );
-            // Invalidate history to refresh
-            queryClient.invalidateQueries({ queryKey: CONSULTATION_KEYS.all });
-            toast.success('Consultation ended');
-        },
-        onError: (error: any) => {
-            toast.error('Failed to end consultation', {
-                description: error.message || 'Please try again',
-            });
-        },
-    });
-}
-
-// ==========================================
-// COMBINED HOOK WITH PAGINATION
-// ==========================================
-
-export function useConsultations() {
-    const [pagination, setPagination] = useState({ limit: 20, offset: 0 });
-
-    const {
-        data,
-        isLoading,
-        isFetching,
-        error,
-        refetch,
-    } = useConsultationHistory(pagination.limit, pagination.offset);
-
-    const updateNotesMutation = useUpdateConsultationNotes();
-    const endConsultationMutation = useEndConsultation();
-
-    const loadMore = useCallback(() => {
-        if (data?.hasMore) {
-            setPagination((prev) => ({
+    const fetchPendingRequests = useCallback(async () => {
+        try {
+            setState(prev => ({ ...prev, isLoading: true, error: null }));
+            const request = await consultationsService.getPendingRequests();
+            setState(prev => ({
                 ...prev,
-                offset: prev.offset + prev.limit,
+                pendingRequests: request,
+                isLoading: false,
             }));
+        } catch (err: any) {
+            const message = err.message || 'Failed to fetch pending requests';
+            setState(prev => ({ ...prev, error: message, isLoading: false }));
         }
-    }, [data?.hasMore]);
+    }, []);
 
-    const resetPagination = useCallback(() => {
-        setPagination({ limit: 20, offset: 0 });
+    const createConsultation = useCallback(async (appointmentId: string): Promise<boolean> => {
+        try {
+            setState(prev => ({ ...prev, isLoading: true, error: null }));
+            const newConsultation = await consultationsService.createConsultation(appointmentId);
+            setState(prev => ({
+                ...prev,
+                consultation: newConsultation,
+                isLoading: false,
+            }));
+            toast.success('Consultation created successfully');
+            return true;
+        } catch (err: any) {
+            const message = err.message || 'Failed to create consultation';
+            setState(prev => ({ ...prev, error: message, isLoading: false }));
+            toast.error(message);
+            return false;
+        }
+    }, [toast]);
+
+    const fetchConsultation = useCallback(async (consultationId: string) => {
+        try {
+            setState(prev => ({ ...prev, isLoading: true, error: null }));
+            const consultation = await consultationsService.getConsultation(consultationId);
+            setState(prev => ({
+                ...prev,
+                consultation,
+                isLoading: false,
+            }));
+        } catch (err: any) {
+            const message = err.message || 'Failed to fetch consultation';
+            setState(prev => ({ ...prev, error: message, isLoading: false }));
+        }
+    }, []);
+
+    const updateNotes = useCallback(async (
+        consultationId: string,
+        notes: UpdateConsultationNotesDto
+    ): Promise<boolean> => {
+        try {
+            setState(prev => ({ ...prev, isLoading: true, error: null }));
+            const updatedConsultation = await consultationsService.updateNotes(consultationId, notes);
+            setState(prev => ({
+                ...prev,
+                consultation: prev.consultation?.id === consultationId
+                    ? updatedConsultation
+                    : prev.consultation,
+                isLoading: false,
+            }));
+            toast.success('Notes updated successfully');
+            return true;
+        } catch (err: any) {
+            const message = err.message || 'Failed to update notes';
+            setState(prev => ({ ...prev, error: message, isLoading: false }));
+            toast.error(message);
+            return false;
+        }
+    }, [toast]);
+
+    const clearConsultation = useCallback(() => {
+        setState(prev => ({
+            ...prev,
+            consultation: null,
+            pendingRequests: [],
+        }));
+    }, []);
+
+    const clearError = useCallback(() => {
+        setState(prev => ({ ...prev, error: null }));
     }, []);
 
     return {
-        consultations: data?.consultations || [],
-        total: data?.total || 0,
-        hasMore: data?.hasMore || false,
-        isLoading,
-        isFetching,
-        error,
-        refetch,
-        loadMore,
-        resetPagination,
-        updateNotes: updateNotesMutation.mutateAsync,
-        endConsultation: endConsultationMutation.mutateAsync,
-        isUpdatingNotes: updateNotesMutation.isPending,
-        isEndingConsultation: endConsultationMutation.isPending,
+        // State
+        ...state,
+
+        // Actions
+        fetchPendingRequests,
+        createConsultation,
+        fetchConsultation,
+        updateNotes,
+        clearConsultation,
+        clearError,
     };
 }

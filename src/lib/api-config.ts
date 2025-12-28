@@ -15,40 +15,37 @@ export const API_ENDPOINTS = {
     },
     doctors: {
         profile: '/doctors/profile',
+        availability: '/doctors/availability',
+        toggleAvailability: '/doctors/availability/toggle',
         submitApplication: '/doctors/submit-application',
         applicationStatus: '/doctors/application-status',
         uploadDocument: '/doctors/documents/upload',
         getDocuments: '/doctors/documents',
         deleteDocument: (id: string) => `/doctors/documents/${id}`,
     },
-    doctorAppointments: {
+    appointments: {
         // Appointments
-        list: '/doctor/appointments',
-        getById: (id: string) => `/doctor/appointments/${id}`,
-        confirm: (id: string) => `/doctor/appointments/${id}/confirm`,
-        complete: (id: string) => `/doctor/appointments/${id}/complete`,
-
+        list: '/appointments',
+        getById: (id: string) => `/appointments/${id}`,
+        cancel: (id: string) => `/appointments/${id}`,
+        upcomingCount: '/appointments/upcoming-count',
+    },
+    timeSlots: {
         // Schedule
-        weeklySchedule: '/doctor/appointments/schedule/weekly',
+        weeklySchedule: '/doctor/slots/schedule/weekly',
 
         // Time Slots
-        slots: '/doctor/appointments/slots',
-        slotsBulk: '/doctor/appointments/slots/bulk',
-        slotById: (slotId: string) => `/doctor/appointments/slots/${slotId}`,
-
-        // Availability
-        toggleAvailability: '/doctor/appointments/availability/toggle',
-
-        // Instant Consultations
-        pendingRequests: '/doctor/appointments/instant-requests/pending',
-        acceptRequest: (id: string) => `/doctor/appointments/instant-requests/${id}/accept`,
-        rejectRequest: (id: string) => `/doctor/appointments/instant-requests/${id}/reject`,
+        slots: '/doctor/slots',
+        slotsBulk: '/doctor/slots/bulk',
+        slotById: (slotId: string) => `/doctor/slots/${slotId}`,
     },
-    doctorConsultations: {
-        // Consultation history
-        list: '/doctor/consultations',
-        getById: (id: string) => `/doctor/consultations/${id}`,
-        updateNotes: (id: string) => `/doctor/consultations/${id}/notes`,
-        end: (id: string) => `/doctor/consultations/${id}/end`,
+    consultations: {
+        // Instant Consultations
+        pendingRequests: '/consultations/instant-requests/pending',
+
+        // Consultations
+        create: '/consultations',
+        getById: (id: string) => `/consultations/${id}`,
+        updateNotes: (id: string) => `/consultations/${id}/notes`,
     },
 };

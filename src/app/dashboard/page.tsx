@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { doctorService } from '@/src/services/doctor.service';
 import { useAppointments } from '@/src/hooks/useAppointments';
 import { RouteGuard } from '@/src/components/RouteGuard';
 import { AppHeader } from '@/src/components/layout/app-header';
@@ -11,68 +10,47 @@ import { Button } from '@/src/components/ui/button';
 import { LoadingSpinner } from '@/src/components/loading-spinner';
 import { AvailabilityToggle } from '@/src/components/dashboard/AvailabilityToggle';
 import {
-  Users, Calendar, DollarSign, Activity, Clock,
-  Video, CheckCircle, TrendingUp, AlertCircle
+  Users, Calendar, DollarSign, Clock, Video, CheckCircle, TrendingUp, AlertCircle
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { staggerContainer, staggerItem } from '@/src/lib/animations';
+import { useProfile } from '@/src/hooks/useProfile';
 
 export default function DashboardPage() {
   const router = useRouter();
-  const [profile, setProfile] = useState<any>(null);
-  const [profileLoading, setProfileLoading] = useState(true);
   const [stats, setStats] = useState({
     totalPatients: 0,
-    appointmentsToday: 0,
-    upcomingAppointments: 0,
     monthlyEarnings: 0,
   });
 
-  // Use appointments hook for real data
+  const { profile, fetchProfile, isLoading: profileLoading } = useProfile();
   const {
     todayAppointments,
-    isLoading: appointmentsLoading,
-    isAvailableNow,
+    upcomingAppointmentsCount,
     fetchTodayAppointments,
-    fetchAvailability,
-    confirmAppointment,
-    completeAppointment,
-    toggleAvailability,
+    fetchUpcomingAppointmentsCount,
+    isLoading: appointmentsLoading
   } = useAppointments();
 
   useEffect(() => {
+    async function loadDashboardData() {
+      try {
+        await fetchProfile();
+        await fetchUpcomingAppointmentsCount();
+        await fetchTodayAppointments();
+
+        // Stats - totalPatients and monthlyEarnings would come from a separate API
+        // appointmentsToday will be derived from todayAppointments
+        setStats({
+          totalPatients: 42, // TODO: Replace with actual API
+          monthlyEarnings: 45000, // TODO: Replace with actual API
+        });
+      } catch (error) {
+        console.error('Failed to load dashboard:', error);
+      }
+    }
     loadDashboardData();
   }, []);
-
-  const loadDashboardData = async () => {
-    try {
-      setProfileLoading(true);
-
-      // Load profile and appointments in parallel
-      const [profileData] = await Promise.all([
-        doctorService.getProfile(),
-        fetchTodayAppointments(),
-        fetchAvailability(),
-      ]);
-
-      setProfile(profileData);
-
-      // Stats - totalPatients and monthlyEarnings would come from a separate API
-      // appointmentsToday will be derived from todayAppointments
-      setStats(prev => ({
-        ...prev,
-        totalPatients: 42, // TODO: Replace with actual API
-        upcomingAppointments: 12, // TODO: Replace with actual API
-        monthlyEarnings: 45000, // TODO: Replace with actual API
-      }));
-    } catch (error) {
-      console.error('Failed to load dashboard:', error);
-    } finally {
-      setProfileLoading(false);
-    }
-  };
-
-  const loading = profileLoading || appointmentsLoading;
 
   if (profileLoading) {
     return (
@@ -110,7 +88,7 @@ export default function DashboardPage() {
     },
     {
       title: 'Upcoming',
-      value: stats.upcomingAppointments,
+      value: upcomingAppointmentsCount,
       icon: Clock,
       color: 'text-orange-600',
       bgColor: 'bg-orange-500/10',
@@ -125,19 +103,6 @@ export default function DashboardPage() {
       change: '+8%',
     },
   ];
-
-  // Handle appointment actions
-  const handleConfirmAppointment = async (id: string) => {
-    await confirmAppointment(id);
-  };
-
-  const handleCompleteAppointment = async (id: string) => {
-    await completeAppointment(id);
-  };
-
-  const handleAvailabilityToggle = async (available: boolean) => {
-    await toggleAvailability(available);
-  };
 
   return (
     <RouteGuard requireAuth={true} requireVerified={true} requireRole="DOCTOR" requireOnboarding={true}>
@@ -293,28 +258,17 @@ export default function DashboardPage() {
                                 <CheckCircle className="h-3 w-3" />
                                 Confirmed
                               </span>
-                            ) : appointment.status === 'PENDING' ? (
-                              <>
-                                <span className="inline-flex items-center gap-1 px-2 py-1 bg-amber-600 text-white rounded-full text-xs font-medium">
-                                  <Clock className="h-3 w-3" />
-                                  Pending
-                                </span>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleConfirmAppointment(appointment.id)}
-                                  className="flex-shrink-0"
-                                >
-                                  Confirm
-                                </Button>
-                              </>
                             ) : (
                               <span className="inline-flex items-center gap-1 px-2 py-1 bg-gray-600 text-white rounded-full text-xs font-medium">
                                 {appointment.status}
                               </span>
                             )}
-                            {appointment.status === 'CONFIRMED' && (
-                              <Button size="sm" className="flex-shrink-0">
+                            {(appointment.status === 'CONFIRMED' || appointment.status === 'IN_PROGRESS') && (
+                              <Button
+                                size="sm"
+                                className="flex-shrink-0"
+                                onClick={() => router.push(`/appointment/${appointment.id}/join`)}
+                              >
                                 Join Call
                               </Button>
                             )}
@@ -341,10 +295,7 @@ export default function DashboardPage() {
 
                 {/* Availability Toggle */}
                 <div className="mt-6">
-                  <AvailabilityToggle
-                    initialAvailable={isAvailableNow}
-                    onToggle={handleAvailabilityToggle}
-                  />
+                  <AvailabilityToggle />
                 </div>
               </motion.div>
             </div>

@@ -5,8 +5,6 @@ import { io, Socket } from 'socket.io-client';
 import { API_CONFIG } from '../lib/api-config';
 import {
     ConsultationRequestEvent,
-    ConsultationAcceptedEvent,
-    ConsultationRejectedEvent,
     ConsultationRequestCancelledEvent,
     ParticipantJoinedEvent,
     ParticipantLeftEvent,
@@ -22,8 +20,6 @@ import {
 
 interface UseConsultationSocketOptions {
     onConsultationRequest?: (data: ConsultationRequestEvent) => void;
-    onConsultationAccepted?: (data: ConsultationAcceptedEvent) => void;
-    onConsultationRejected?: (data: ConsultationRejectedEvent) => void;
     onRequestCancelled?: (data: ConsultationRequestCancelledEvent) => void;
     onParticipantJoined?: (data: ParticipantJoinedEvent) => void;
     onParticipantLeft?: (data: ParticipantLeftEvent) => void;
@@ -51,9 +47,7 @@ interface UseConsultationSocketReturn {
 // CONSULTATION SOCKET HOOK
 // ==========================================
 
-export function useConsultationSocket(
-    options: UseConsultationSocketOptions = {}
-): UseConsultationSocketReturn {
+export function useConsultationSocket(options: UseConsultationSocketOptions = {}): UseConsultationSocketReturn {
     const socketRef = useRef<Socket | null>(null);
     const [isConnected, setIsConnected] = useState(false);
     const optionsRef = useRef(options);
@@ -118,16 +112,6 @@ export function useConsultationSocket(
         socket.on('consultation-request', (data: ConsultationRequestEvent) => {
             console.log('[ConsultationSocket] Received consultation request:', data);
             optionsRef.current.onConsultationRequest?.(data);
-        });
-
-        socket.on('consultation-accepted', (data: ConsultationAcceptedEvent) => {
-            console.log('[ConsultationSocket] Consultation accepted:', data);
-            optionsRef.current.onConsultationAccepted?.(data);
-        });
-
-        socket.on('consultation-rejected', (data: ConsultationRejectedEvent) => {
-            console.log('[ConsultationSocket] Consultation rejected:', data);
-            optionsRef.current.onConsultationRejected?.(data);
         });
 
         socket.on('consultation-request-cancelled', (data: ConsultationRequestCancelledEvent) => {

@@ -55,6 +55,12 @@ export interface Consultation {
         scheduledAt: string;
         type: 'SCHEDULED' | 'INSTANT';
     };
+    // Video room information
+    roomUrl?: string;
+    dailyRoomName?: string;
+    roomExpiresAt?: string;
+    token?: string;
+    actualDuration?: number;
 }
 
 export interface InstantConsultationRequest {
@@ -138,12 +144,6 @@ export interface TypingIndicatorEvent {
 // ==========================================
 // API REQUEST/RESPONSE TYPES
 // ==========================================
-
-export interface ConsultationHistoryResponse {
-    consultations: Consultation[];
-    total: number;
-    hasMore: boolean;
-}
 
 export interface UpdateConsultationNotesDto {
     notes?: string;

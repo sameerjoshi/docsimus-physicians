@@ -29,7 +29,13 @@ import {
 import { motion } from 'framer-motion';
 import { staggerContainer, staggerItem } from '@/src/lib/animations';
 import { useAppointments } from '@/src/hooks/useAppointments';
-import { Appointment, CreateTimeSlotPayload } from '@/src/services/appointments.service';
+import { Appointment } from '@/src/types/appointments';
+import { CreateTimeSlotPayload } from '@/src/types/time-slots';
+import { useTimeSlots } from '@/src/hooks/useTimeSlots';
+import { useConsultations } from '@/src/hooks/useConsultations';
+import { useProfile } from '@/src/hooks/useProfile';
+import { useConsultationSocket } from '@/src/hooks/useConsultationSocket';
+import { useToast } from '@/src/hooks/use-toast';
 
 export default function SchedulePage() {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -51,23 +57,16 @@ export default function SchedulePage() {
   const {
     appointments,
     todayAppointments,
-    timeSlots,
-    pendingRequests,
-    isAvailableNow,
     isLoading,
     fetchWeekAppointments,
     fetchTodayAppointments,
-    fetchTimeSlots,
-    fetchPendingRequests,
-    fetchAvailability,
-    createTimeSlot,
-    deleteTimeSlot,
-    confirmAppointment,
-    completeAppointment,
-    toggleAvailability,
-    acceptRequest,
-    rejectRequest,
   } = useAppointments();
+
+  const { timeSlots, fetchTimeSlots, createTimeSlot, deleteTimeSlot } = useTimeSlots();
+  const { pendingRequests, fetchPendingRequests } = useConsultations();
+  const { availability, fetchAvailability, toggleAvailability } = useProfile();
+  const { respondToRequest } = useConsultationSocket();
+  const toast = useToast();
 
   const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const daysOfWeekFull = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -146,25 +145,39 @@ export default function SchedulePage() {
   };
 
   const handleToggleAvailability = async () => {
-    await toggleAvailability(!isAvailableNow);
-  };
-
-  const handleConfirmAppointment = async (id: string) => {
-    await confirmAppointment(id);
-  };
-
-  const handleCompleteAppointment = async (id: string) => {
-    await completeAppointment(id);
-    setShowAppointmentDialog(false);
-    setSelectedAppointment(null);
+    await toggleAvailability(!availability);
   };
 
   const handleAcceptInstantRequest = async (requestId: string) => {
-    await acceptRequest(requestId);
+    try {
+      const result = await respondToRequest(requestId, true);
+
+      if (result.success && result.appointmentId) {
+        toast.success('Consultation Accepted. Redirecting...');
+
+        return { appointmentId: result.appointmentId };
+      } else {
+        throw new Error(result.error || 'Failed to accept request');
+      }
+    } catch (error) {
+      console.error('Failed to accept request:', error);
+      toast.error(`Failed to Accept: ${error instanceof Error ? error.message : 'Please try again'}`);
+    }
   };
 
   const handleRejectInstantRequest = async (requestId: string) => {
-    await rejectRequest(requestId);
+    try {
+      const result = await respondToRequest(requestId, false);
+
+      if (result.success) {
+        toast.info('Request Declined');
+      } else {
+        throw new Error(result.error || 'Failed to decline request');
+      }
+    } catch (error) {
+      console.error('Failed to reject request:', error);
+      toast.error(`Failed to Decline: ${error instanceof Error ? error.message : 'Please try again'}`);
+    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -209,11 +222,11 @@ export default function SchedulePage() {
               </div>
               <div className="flex items-center gap-3">
                 <Button
-                  variant={isAvailableNow ? "default" : "outline"}
+                  variant={availability ? "default" : "outline"}
                   onClick={handleToggleAvailability}
                   disabled={isLoading}
                 >
-                  {isAvailableNow ? (
+                  {availability ? (
                     <><ToggleRight className="h-4 w-4 mr-2" />Available Now</>
                   ) : (
                     <><ToggleLeft className="h-4 w-4 mr-2" />Set Available</>
@@ -471,20 +484,6 @@ export default function SchedulePage() {
                               Join
                             </Button>
                           )}
-                          {apt.status === 'PENDING' && (
-                            <Button
-                              size="sm"
-                              className="flex-1"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleConfirmAppointment(apt.id);
-                              }}
-                              disabled={isLoading}
-                            >
-                              <CheckCircle className="h-3 w-3 mr-1" />
-                              Confirm
-                            </Button>
-                          )}
                         </div>
                       </div>
                     ))
@@ -679,26 +678,11 @@ export default function SchedulePage() {
             </div>
           )}
           <DialogFooter className="flex-col sm:flex-row gap-2">
-            {selectedAppointment?.status === 'PENDING' && (
-              <Button
-                onClick={() => handleConfirmAppointment(selectedAppointment.id)}
-                disabled={isLoading}
-              >
-                <CheckCircle className="h-4 w-4 mr-2" />
-                Confirm Appointment
-              </Button>
-            )}
             {selectedAppointment?.status === 'CONFIRMED' && (
               <>
-                <Button variant="outline">
+                <Button>
                   <Video className="h-4 w-4 mr-2" />
                   Start Consultation
-                </Button>
-                <Button
-                  onClick={() => handleCompleteAppointment(selectedAppointment.id)}
-                  disabled={isLoading}
-                >
-                  Mark Complete
                 </Button>
               </>
             )}
