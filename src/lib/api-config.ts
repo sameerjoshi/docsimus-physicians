@@ -48,4 +48,10 @@ export const API_ENDPOINTS = {
         getById: (id: string) => `/consultations/${id}`,
         updateNotes: (id: string) => `/consultations/${id}/notes`,
     },
+    patients: {
+        // Patients
+        list: '/appointments/patients',
+        stats: '/appointments/patients/stats',
+        appointments: (patientId: string) => `/appointments?patientId=${patientId}`,
+    },
 };

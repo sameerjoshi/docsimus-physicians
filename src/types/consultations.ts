@@ -39,11 +39,9 @@ export interface Consultation {
     status: ConsultationStatus;
     startedAt?: string;
     endedAt?: string;
-    notes?: string;
-    diagnosis?: string;
+    doctorNotes?: string;
     prescription?: string;
     followUpDate?: string;
-    followUpNotes?: string;
     createdAt: string;
     updatedAt: string;
     patient?: Patient;
@@ -128,6 +126,14 @@ export interface ConsultationEndedEvent {
     timestamp: string;
 }
 
+export interface ConsultationNotesUpdatedEvent {
+    consultationId: string;
+    doctorNotes?: string;
+    prescription?: string;
+    followUpDate?: string;
+    updatedAt: string;
+}
+
 export interface ConsultationStatusEvent {
     consultationId: string;
     status: ConsultationStatus;
@@ -146,11 +152,9 @@ export interface TypingIndicatorEvent {
 // ==========================================
 
 export interface UpdateConsultationNotesDto {
-    notes?: string;
-    diagnosis?: string;
+    doctorNotes?: string;
     prescription?: string;
     followUpDate?: string;
-    followUpNotes?: string;
 }
 
 export interface ConsultationResponsePayload {

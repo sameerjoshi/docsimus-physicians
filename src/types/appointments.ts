@@ -18,6 +18,14 @@ export interface Patient {
     email: string;
 }
 
+export interface Consultation {
+    id: string;
+    status: string;
+    doctorNotes?: string;
+    prescription?: string;
+    followUpDate?: string;
+}
+
 export interface Appointment {
     id: string;
     patientId: string;
@@ -35,6 +43,7 @@ export interface Appointment {
     createdAt: string;
     updatedAt: string;
     patient?: Patient;
+    consultation?: Consultation;
 }
 
 // ==========================================

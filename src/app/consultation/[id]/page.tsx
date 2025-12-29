@@ -1,37 +1,66 @@
-'use client';
+"use client";
 
-import { useEffect, useState, useCallback, useRef } from 'react';
-import { useRouter, useParams } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
-import { toast } from 'sonner';
+import { useEffect, useState, useCallback, useRef } from "react";
+import { useRouter, useParams } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
 import {
-  Mic, MicOff, Video, VideoOff, MonitorUp, Phone, User, Clock, FileText, ChevronLeft, Maximize,
-  Minimize, Loader2, WifiOff, AlertCircle, Stethoscope, ClipboardList, Pill,
-} from 'lucide-react';
-import { DailyProvider, DailyAudio, useParticipantProperty } from '@daily-co/daily-react';
-import DailyIframe, { DailyCall } from '@daily-co/daily-js';
+  Mic,
+  MicOff,
+  Video,
+  VideoOff,
+  MonitorUp,
+  Phone,
+  User,
+  Clock,
+  FileText,
+  ChevronLeft,
+  Maximize,
+  Minimize,
+  Loader2,
+  WifiOff,
+  AlertCircle,
+  Stethoscope,
+  ClipboardList,
+  Pill,
+} from "lucide-react";
+import {
+  DailyProvider,
+  DailyAudio,
+  useParticipantProperty,
+} from "@daily-co/daily-react";
+import DailyIframe, { DailyCall } from "@daily-co/daily-js";
 
-import { AppHeader } from '@/src/components/layout/app-header';
-import { Card } from '@/src/components/ui/card';
-import { Button } from '@/src/components/ui/button';
-import { VideoTile } from '@/src/components/consultations/VideoTile';
-import { useDailyCall } from '@/src/hooks/use-daily-call';
-import { useConsultations } from '@/src/hooks/use-consultations';
-import { useConsultationSocket } from '@/src/hooks/use-consultation-socket';
+import { AppHeader } from "@/src/components/layout/app-header";
+import { Card } from "@/src/components/ui/card";
+import { Button } from "@/src/components/ui/button";
+import { VideoTile } from "@/src/components/consultations/VideoTile";
+import { useDailyCall } from "@/src/hooks/use-daily-call";
+import { useConsultations } from "@/src/hooks/use-consultations";
+import { useConsultationSocket } from "@/src/hooks/use-consultation-socket";
 import {
   Consultation,
   UpdateConsultationNotesDto,
   ConsultationEndedEvent,
   ParticipantJoinedEvent,
   ParticipantLeftEvent,
-} from '@/src/types/consultations';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/src/components/ui/dialog';
+} from "@/src/types/consultations";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/src/components/ui/dialog";
 
 // Format duration to mm:ss
 function formatDuration(seconds: number): string {
   const mins = Math.floor(seconds / 60);
   const secs = seconds % 60;
-  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  return `${mins.toString().padStart(2, "0")}:${secs
+    .toString()
+    .padStart(2, "0")}`;
 }
 
 // Media controls component
@@ -56,41 +85,57 @@ function MediaControls({
   isLeaving: boolean;
   localSessionId: string | null;
 }) {
-  const isMicEnabled = useParticipantProperty(localSessionId ?? '', 'audio') === true;
-  const isCameraEnabled = useParticipantProperty(localSessionId ?? '', 'video') === true;
+  const isMicEnabled =
+    useParticipantProperty(localSessionId ?? "", "audio") === true;
+  const isCameraEnabled =
+    useParticipantProperty(localSessionId ?? "", "video") === true;
 
   return (
     <div className="flex justify-center">
       <div className="flex items-center gap-2 p-2 bg-card rounded-full border border-border shadow-lg">
         {/* Mic Toggle */}
         <Button
-          variant={isMicEnabled ? 'ghost' : 'destructive'}
+          variant={isMicEnabled ? "ghost" : "destructive"}
           size="icon"
           onClick={onToggleMic}
-          className={`rounded-full w-12 h-12 ${isMicEnabled ? 'hover:bg-accent' : ''}`}
-          title={isMicEnabled ? 'Mute' : 'Unmute'}
+          className={`rounded-full w-12 h-12 ${
+            isMicEnabled ? "hover:bg-accent" : ""
+          }`}
+          title={isMicEnabled ? "Mute" : "Unmute"}
         >
-          {isMicEnabled ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
+          {isMicEnabled ? (
+            <Mic className="w-5 h-5" />
+          ) : (
+            <MicOff className="w-5 h-5" />
+          )}
         </Button>
 
         {/* Camera Toggle */}
         <Button
-          variant={isCameraEnabled ? 'ghost' : 'destructive'}
+          variant={isCameraEnabled ? "ghost" : "destructive"}
           size="icon"
           onClick={onToggleCamera}
-          className={`rounded-full w-12 h-12 ${isCameraEnabled ? 'hover:bg-accent' : ''}`}
-          title={isCameraEnabled ? 'Turn off camera' : 'Turn on camera'}
+          className={`rounded-full w-12 h-12 ${
+            isCameraEnabled ? "hover:bg-accent" : ""
+          }`}
+          title={isCameraEnabled ? "Turn off camera" : "Turn on camera"}
         >
-          {isCameraEnabled ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
+          {isCameraEnabled ? (
+            <Video className="w-5 h-5" />
+          ) : (
+            <VideoOff className="w-5 h-5" />
+          )}
         </Button>
 
         {/* Screen Share */}
         <Button
-          variant={isScreenSharing ? 'secondary' : 'ghost'}
+          variant={isScreenSharing ? "secondary" : "ghost"}
           size="icon"
           onClick={onToggleScreenShare}
-          className={`rounded-full w-12 h-12 ${!isScreenSharing ? 'hover:bg-accent' : ''}`}
-          title={isScreenSharing ? 'Stop sharing' : 'Share screen'}
+          className={`rounded-full w-12 h-12 ${
+            !isScreenSharing ? "hover:bg-accent" : ""
+          }`}
+          title={isScreenSharing ? "Stop sharing" : "Share screen"}
         >
           <MonitorUp className="w-5 h-5" />
         </Button>
@@ -99,10 +144,12 @@ function MediaControls({
 
         {/* Toggle Notes Panel */}
         <Button
-          variant={showNotesPanel ? 'secondary' : 'ghost'}
+          variant={showNotesPanel ? "secondary" : "ghost"}
           size="icon"
           onClick={onToggleNotes}
-          className={`rounded-full w-12 h-12 ${!showNotesPanel ? 'hover:bg-accent' : ''}`}
+          className={`rounded-full w-12 h-12 ${
+            !showNotesPanel ? "hover:bg-accent" : ""
+          }`}
           title="Toggle notes panel"
         >
           <FileText className="w-5 h-5" />
@@ -142,34 +189,44 @@ function ConsultationRoom({ consultation }: { consultation: Consultation }) {
   const [hasLeftCall, setHasLeftCall] = useState(false);
 
   // Notes state
-  const [notes, setNotes] = useState('');
-  const [diagnosis, setDiagnosis] = useState('');
-  const [prescription, setPrescription] = useState('');
+  const [doctorNotes, setDoctorNotes] = useState("");
+  const [prescription, setPrescription] = useState("");
+  const [followUpDate, setFollowUpDate] = useState("");
   const [isSavingNotes, setIsSavingNotes] = useState(false);
 
   const { updateNotes: updateConsultationNotes } = useConsultations();
 
   // Consultation socket for real-time events
-  const { endConsultation: endConsultationSocket } = useConsultationSocket({
-    onConsultationEnded: useCallback((data: ConsultationEndedEvent) => {
-      if (data.consultationId === consultation.id) {
-        toast.info('Consultation ended by patient');
-        router.push('/dashboard');
-      }
-    }, [consultation.id, router]),
-    onParticipantJoined: useCallback((data: ParticipantJoinedEvent) => {
-      if (data.consultationId === consultation.id) {
-        setPatientConnected(true);
-        toast.success('Patient joined the consultation');
-      }
-    }, [consultation.id]),
-    onParticipantLeft: useCallback((data: ParticipantLeftEvent) => {
-      if (data.consultationId === consultation.id) {
-        setPatientConnected(false);
-        toast.info('Patient left the consultation');
-      }
-    }, [consultation.id]),
-  });
+  const { endConsultation: endConsultationSocket, notifyNotesUpdated } =
+    useConsultationSocket({
+      onConsultationEnded: useCallback(
+        (data: ConsultationEndedEvent) => {
+          if (data.consultationId === consultation.id) {
+            toast.info("Consultation ended by patient");
+            router.push("/dashboard");
+          }
+        },
+        [consultation.id, router]
+      ),
+      onParticipantJoined: useCallback(
+        (data: ParticipantJoinedEvent) => {
+          if (data.consultationId === consultation.id) {
+            setPatientConnected(true);
+            toast.success("Patient joined the consultation");
+          }
+        },
+        [consultation.id]
+      ),
+      onParticipantLeft: useCallback(
+        (data: ParticipantLeftEvent) => {
+          if (data.consultationId === consultation.id) {
+            setPatientConnected(false);
+            toast.info("Patient left the consultation");
+          }
+        },
+        [consultation.id]
+      ),
+    });
 
   // Daily call hook
   const {
@@ -194,23 +251,31 @@ function ConsultationRoom({ consultation }: { consultation: Consultation }) {
   // Pre-fill notes when consultation is loaded
   useEffect(() => {
     if (consultation) {
-      if (consultation.notes) setNotes(consultation.notes);
-      if (consultation.diagnosis) setDiagnosis(consultation.diagnosis);
+      if (consultation.doctorNotes) setDoctorNotes(consultation.doctorNotes);
       if (consultation.prescription) setPrescription(consultation.prescription);
+      if (consultation.followUpDate)
+        setFollowUpDate(consultation.followUpDate.split("T")[0]); // Format for date input
     }
   }, [consultation]);
 
   // Join the video call (only if user hasn't intentionally left and call object is ready)
   useEffect(() => {
-    if (!consultation?.roomUrl || !isReady || isConnecting || isConnected || hasLeftCall) return;
+    if (
+      !consultation?.roomUrl ||
+      !isReady ||
+      isConnecting ||
+      isConnected ||
+      hasLeftCall
+    )
+      return;
     joinCall(consultation.roomUrl, consultation.token);
   }, [consultation, isReady, isConnecting, isConnected, hasLeftCall, joinCall]);
 
   // Handle meeting ended by other participant
   useEffect(() => {
     if (meetingEndedByOther) {
-      toast.info('The consultation has ended');
-      router.push('/dashboard');
+      toast.info("The consultation has ended");
+      router.push("/dashboard");
     }
   }, [meetingEndedByOther, router]);
 
@@ -221,25 +286,47 @@ function ConsultationRoom({ consultation }: { consultation: Consultation }) {
     setIsSavingNotes(true);
     try {
       const updateData: UpdateConsultationNotesDto = {
-        notes: notes || undefined,
-        diagnosis: diagnosis || undefined,
+        doctorNotes: doctorNotes || undefined,
         prescription: prescription || undefined,
+        followUpDate: followUpDate
+          ? new Date(followUpDate).toISOString()
+          : undefined,
       };
 
       await updateConsultationNotes(consultation.id, updateData);
+      toast.success("Notes saved successfully");
+
+      // Notify patient in real-time if they're connected
+      if (patientConnected && (doctorNotes || prescription || followUpDate)) {
+        notifyNotesUpdated(consultation.id, {
+          doctorNotes,
+          prescription,
+          followUpDate: followUpDate
+            ? new Date(followUpDate).toISOString()
+            : undefined,
+        });
+      }
     } catch (err) {
-      console.error('Failed to save notes:', err);
-      toast.error('Failed to save notes');
+      console.error("Failed to save notes:", err);
+      toast.error("Failed to save notes");
     } finally {
       setIsSavingNotes(false);
     }
-  }, [consultation, notes, diagnosis, prescription, updateConsultationNotes]);
+  }, [
+    consultation,
+    doctorNotes,
+    prescription,
+    followUpDate,
+    updateConsultationNotes,
+    patientConnected,
+    notifyNotesUpdated,
+  ]);
 
   // Handle exit (just leave the call without ending consultation)
   const handleExit = useCallback(async () => {
     setHasLeftCall(true);
     await leaveCall();
-    router.push('/dashboard');
+    router.push("/dashboard");
   }, [leaveCall, router]);
 
   // Handle end call (save notes, notify socket, leave call)
@@ -249,13 +336,13 @@ function ConsultationRoom({ consultation }: { consultation: Consultation }) {
     try {
       await endConsultationSocket(consultation.id);
     } catch (err) {
-      console.error('Failed to notify consultation end:', err);
+      console.error("Failed to notify consultation end:", err);
     }
     setHasLeftCall(true);
     await leaveCall();
     setShowEndCallDialog(false);
-    toast.success('Consultation ended');
-    router.push('/dashboard');
+    toast.success("Consultation ended");
+    router.push("/dashboard");
   }, [saveNotes, endConsultationSocket, consultation.id, leaveCall, router]);
 
   // Toggle fullscreen
@@ -288,21 +375,31 @@ function ConsultationRoom({ consultation }: { consultation: Consultation }) {
           </Button>
           <div className="h-6 w-px bg-border" />
           <div className="flex items-center gap-2">
-            <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-yellow-500'} animate-pulse`} />
+            <div
+              className={`w-2 h-2 rounded-full ${
+                isConnected ? "bg-green-500" : "bg-yellow-500"
+              } animate-pulse`}
+            />
             <span className="text-sm text-muted-foreground">
-              {isConnecting ? 'Connecting...' : isConnected ? 'Connected' : 'Disconnected'}
+              {isConnecting
+                ? "Connecting..."
+                : isConnected
+                ? "Connected"
+                : "Disconnected"}
             </span>
           </div>
         </div>
 
         <div className="flex items-center gap-2 text-foreground">
           <Clock className="w-4 h-4 text-muted-foreground" />
-          <span className="font-mono text-lg">{formatDuration(callDuration)}</span>
+          <span className="font-mono text-lg">
+            {formatDuration(callDuration)}
+          </span>
         </div>
 
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground mr-2">
-            Patient: {consultation.patient?.name || 'Unknown'}
+            Patient: {consultation.patient?.name || "Unknown"}
           </span>
           <Button
             variant="ghost"
@@ -310,7 +407,11 @@ function ConsultationRoom({ consultation }: { consultation: Consultation }) {
             className="text-muted-foreground hover:text-foreground"
             onClick={toggleFullscreen}
           >
-            {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
+            {isFullscreen ? (
+              <Minimize className="w-5 h-5" />
+            ) : (
+              <Maximize className="w-5 h-5" />
+            )}
           </Button>
         </div>
       </div>
@@ -318,7 +419,9 @@ function ConsultationRoom({ consultation }: { consultation: Consultation }) {
       {/* Main Content */}
       <div className="flex-1 flex">
         {/* Video Section */}
-        <div className={`flex-1 p-4 flex flex-col ${showNotesPanel ? 'pr-2' : ''}`}>
+        <div
+          className={`flex-1 p-4 flex flex-col ${showNotesPanel ? "pr-2" : ""}`}
+        >
           {/* Connection Error */}
           {videoError && (
             <div className="mb-4 p-3 bg-destructive/10 border border-destructive/30 rounded-lg flex items-center gap-3">
@@ -336,7 +439,7 @@ function ConsultationRoom({ consultation }: { consultation: Consultation }) {
             <div className="relative">
               <VideoTile
                 sessionId={remoteParticipantId}
-                label={consultation.patient?.name || 'Patient'}
+                label={consultation.patient?.name || "Patient"}
               />
 
               {/* Waiting indicator when no remote participant */}
@@ -344,8 +447,12 @@ function ConsultationRoom({ consultation }: { consultation: Consultation }) {
                 <div className="absolute inset-0 flex items-center justify-center bg-card/90 backdrop-blur-sm rounded-xl">
                   <div className="text-center">
                     <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-3" />
-                    <p className="text-foreground font-medium">Waiting for patient to join...</p>
-                    <p className="text-muted-foreground text-sm mt-1">The patient will appear here once connected</p>
+                    <p className="text-foreground font-medium">
+                      Waiting for patient to join...
+                    </p>
+                    <p className="text-muted-foreground text-sm mt-1">
+                      The patient will appear here once connected
+                    </p>
                   </div>
                 </div>
               )}
@@ -354,11 +461,7 @@ function ConsultationRoom({ consultation }: { consultation: Consultation }) {
 
           {/* Self view - picture in picture */}
           <div className="absolute bottom-24 right-4 w-48 z-10">
-            <VideoTile
-              sessionId={localSessionId}
-              isLocal
-              label="You"
-            />
+            <VideoTile sessionId={localSessionId} isLocal label="You" />
           </div>
 
           {/* Control Bar */}
@@ -400,51 +503,45 @@ function ConsultationRoom({ consultation }: { consultation: Consultation }) {
                       <User className="w-5 h-5 text-primary" />
                     </div>
                     <div>
-                      <p className="text-foreground font-medium">{consultation.patient?.name || 'Patient'}</p>
-                      <p className="text-sm text-muted-foreground">{consultation.patient?.email || ''}</p>
+                      <p className="text-foreground font-medium">
+                        {consultation.patient?.name || "Patient"}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {consultation.patient?.email || ""}
+                      </p>
                     </div>
                   </div>
                   {consultation.appointment?.reason && (
                     <div className="text-sm">
                       <span className="text-muted-foreground">Reason: </span>
-                      <span className="text-foreground">{consultation.appointment.reason}</span>
+                      <span className="text-foreground">
+                        {consultation.appointment.reason}
+                      </span>
                     </div>
                   )}
                   {consultation.appointment?.symptoms && (
                     <div className="text-sm mt-1">
                       <span className="text-muted-foreground">Symptoms: </span>
-                      <span className="text-foreground">{consultation.appointment.symptoms}</span>
+                      <span className="text-foreground">
+                        {consultation.appointment.symptoms}
+                      </span>
                     </div>
                   )}
                 </div>
 
                 {/* Notes Form */}
                 <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                  {/* Clinical Notes */}
+                  {/* Doctor Notes */}
                   <div>
                     <label className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
                       <FileText className="w-4 h-4 text-primary" />
-                      Clinical Notes
+                      Doctor Notes
                     </label>
                     <textarea
-                      value={notes}
-                      onChange={(e) => setNotes(e.target.value)}
-                      placeholder="Enter clinical notes..."
-                      className="w-full h-32 px-3 py-2 bg-input border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none"
-                    />
-                  </div>
-
-                  {/* Diagnosis */}
-                  <div>
-                    <label className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
-                      <Stethoscope className="w-4 h-4 text-primary" />
-                      Diagnosis
-                    </label>
-                    <textarea
-                      value={diagnosis}
-                      onChange={(e) => setDiagnosis(e.target.value)}
-                      placeholder="Enter diagnosis..."
-                      className="w-full h-24 px-3 py-2 bg-input border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+                      value={doctorNotes}
+                      onChange={(e) => setDoctorNotes(e.target.value)}
+                      placeholder="Enter clinical notes and diagnosis..."
+                      className="w-full h-40 px-3 py-2 bg-input border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none"
                     />
                   </div>
 
@@ -458,7 +555,21 @@ function ConsultationRoom({ consultation }: { consultation: Consultation }) {
                       value={prescription}
                       onChange={(e) => setPrescription(e.target.value)}
                       placeholder="Enter prescription..."
-                      className="w-full h-24 px-3 py-2 bg-input border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+                      className="w-full h-32 px-3 py-2 bg-input border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+                    />
+                  </div>
+
+                  {/* Follow-up Date */}
+                  <div>
+                    <label className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
+                      <Clock className="w-4 h-4 text-primary" />
+                      Follow-up Date
+                    </label>
+                    <input
+                      type="date"
+                      value={followUpDate}
+                      onChange={(e) => setFollowUpDate(e.target.value)}
+                      className="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                     />
                   </div>
                 </div>
@@ -476,7 +587,7 @@ function ConsultationRoom({ consultation }: { consultation: Consultation }) {
                         Saving...
                       </>
                     ) : (
-                      'Save Notes'
+                      "Save Notes"
                     )}
                   </Button>
                 </div>
@@ -490,23 +601,33 @@ function ConsultationRoom({ consultation }: { consultation: Consultation }) {
       <Dialog open={showEndCallDialog} onOpenChange={setShowEndCallDialog}>
         <DialogContent className="bg-card border-border">
           <DialogHeader>
-            <DialogTitle className="text-foreground">End Consultation?</DialogTitle>
+            <DialogTitle className="text-foreground">
+              End Consultation?
+            </DialogTitle>
             <DialogDescription>
-              Are you sure you want to end this consultation? Your notes will be saved automatically.
+              Are you sure you want to end this consultation? Your notes will be
+              saved automatically.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex gap-2">
-            <Button variant="outline" onClick={() => setShowEndCallDialog(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setShowEndCallDialog(false)}
+            >
               Continue Consultation
             </Button>
-            <Button variant="destructive" onClick={handleEndCall} disabled={isLeaving}>
+            <Button
+              variant="destructive"
+              onClick={handleEndCall}
+              disabled={isLeaving}
+            >
               {isLeaving ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   Ending...
                 </>
               ) : (
-                'End Consultation'
+                "End Consultation"
               )}
             </Button>
           </DialogFooter>
@@ -584,9 +705,13 @@ export default function PhysicianConsultationRoomPage() {
         <div className="min-h-screen bg-background flex items-center justify-center">
           <Card className="max-w-md p-8 text-center">
             <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold mb-2">Unable to Load Consultation</h2>
-            <p className="text-muted-foreground mb-4">{consultationError || 'Consultation not found'}</p>
-            <Button onClick={() => router.push('/dashboard')}>
+            <h2 className="text-xl font-semibold mb-2">
+              Unable to Load Consultation
+            </h2>
+            <p className="text-muted-foreground mb-4">
+              {consultationError || "Consultation not found"}
+            </p>
+            <Button onClick={() => router.push("/dashboard")}>
               <ChevronLeft className="w-4 h-4 mr-2" />
               Back to Dashboard
             </Button>
@@ -606,11 +731,10 @@ export default function PhysicianConsultationRoomPage() {
             <Video className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
             <h2 className="text-xl font-semibold mb-2">Video Room Not Ready</h2>
             <p className="text-muted-foreground mb-4">
-              The video consultation room is being prepared. Please wait a moment.
+              The video consultation room is being prepared. Please wait a
+              moment.
             </p>
-            <Button onClick={() => window.location.reload()}>
-              Try Again
-            </Button>
+            <Button onClick={() => window.location.reload()}>Try Again</Button>
           </Card>
         </div>
       </>

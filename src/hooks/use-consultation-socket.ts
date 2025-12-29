@@ -25,6 +25,7 @@ interface UseConsultationSocketOptions {
     onParticipantLeft?: (data: ParticipantLeftEvent) => void;
     onConsultationEnded?: (data: ConsultationEndedEvent) => void;
     onConsultationStatus?: (data: ConsultationStatusEvent) => void;
+    onConsultationNotesUpdated?: (data: any) => void;
     onTypingIndicator?: (data: TypingIndicatorEvent) => void;
     onConnect?: () => void;
     onDisconnect?: () => void;
@@ -39,6 +40,7 @@ interface UseConsultationSocketReturn {
     leaveConsultation: (consultationId: string) => Promise<{ success: boolean; error?: string }>;
     endConsultation: (consultationId: string) => Promise<{ success: boolean; error?: string }>;
     sendTypingIndicator: (consultationId: string, isTyping: boolean) => void;
+    notifyNotesUpdated: (consultationId: string, notes: any) => void;
     connect: () => void;
     disconnect: () => void;
 }
@@ -143,6 +145,11 @@ export function useConsultationSocket(options: UseConsultationSocketOptions = {}
             optionsRef.current.onTypingIndicator?.(data);
         });
 
+        socket.on('consultation-notes-updated', (data: any) => {
+            console.log('[ConsultationSocket] Notes updated:', data);
+            optionsRef.current.onConsultationNotesUpdated?.(data);
+        });
+
         socketRef.current = socket;
     }, [getToken]);
 
@@ -220,6 +227,22 @@ export function useConsultationSocket(options: UseConsultationSocketOptions = {}
         []
     );
 
+    // Notify that consultation notes were updated
+    const notifyNotesUpdated = useCallback(
+        (consultationId: string, notes: any) => {
+            if (socketRef.current?.connected) {
+                socketRef.current.emit('consultation-notes-updated', {
+                    consultationId,
+                    doctorNotes: notes.doctorNotes,
+                    prescription: notes.prescription,
+                    followUpDate: notes.followUpDate,
+                    updatedAt: new Date().toISOString(),
+                });
+            }
+        },
+        []
+    );
+
     // Auto-connect on mount if token exists
     useEffect(() => {
         const token = getToken();
@@ -240,6 +263,7 @@ export function useConsultationSocket(options: UseConsultationSocketOptions = {}
         leaveConsultation,
         endConsultation,
         sendTypingIndicator,
+        notifyNotesUpdated,
         connect,
         disconnect,
     };
