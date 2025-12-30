@@ -19,6 +19,7 @@ import {
   DialogTitle,
 } from "@/src/components/ui/dialog";
 import { Label } from "@/src/components/ui/label";
+import { toast } from "sonner";
 
 interface PageProps {
   params: Promise<{ applicationId: string }>;
@@ -219,7 +220,7 @@ export default function ApplicationDetailPage({ params }: PageProps) {
     const { type, documentId, reason } = rejectionModal;
 
     if (!reason.trim()) {
-      alert('Please provide a rejection reason');
+      toast.error('Please provide a rejection reason');
       return;
     }
 
@@ -241,9 +242,9 @@ export default function ApplicationDetailPage({ params }: PageProps) {
 
       await loadApplication();
       setRejectionModal({ isOpen: false, type: 'document', reason: '' });
-      alert(`${type === 'document' ? 'Document' : 'Application'} rejected successfully`);
+      toast.success(`${type === 'document' ? 'Document' : 'Application'} rejected successfully`);
     } catch (err: any) {
-      alert(err.message || 'Failed to reject');
+      toast.error(err.message || 'Failed to reject');
     } finally {
       setActionLoading(false);
     }
@@ -254,7 +255,7 @@ export default function ApplicationDetailPage({ params }: PageProps) {
       // Get the auth token
       const token = localStorage.getItem('accessToken');
       if (!token) {
-        alert('Please login to view documents');
+        toast.error('Please login to view documents');
         return;
       }
 
@@ -281,7 +282,7 @@ export default function ApplicationDetailPage({ params }: PageProps) {
       setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
     } catch (error: any) {
       console.error('Error viewing document:', error);
-      alert(error.message || 'Failed to load document');
+      toast.error(error.message || 'Failed to load document');
     }
   };
 

@@ -215,7 +215,9 @@ button:focus,
 button.rounded-full:focus,
 [role="button"].rounded-full:focus,
 .cursor-pointer:focus,
-[role="button"] .cursor-pointer:focus {
+[role="button"] .cursor-pointer:focus,
+/* Remove focus outline from registration step buttons */
+button.group:focus {
   outline: none !important;
   box-shadow: none !important;
 }

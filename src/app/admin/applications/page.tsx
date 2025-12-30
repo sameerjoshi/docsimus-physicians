@@ -7,6 +7,7 @@ import { Card, Button, Badge } from "@/src/components/ui";
 import { UserPlus, Check, Search, Filter } from "lucide-react";
 import { adminService, type AdminDoctorApplication, type Reviewer } from "@/src/services/admin.service";
 import { LoadingSpinner } from "@/src/components/loading-spinner";
+import { toast } from "sonner";
 
 export default function AdminApplicationsPage() {
     const [applications, setApplications] = useState<AdminDoctorApplication[]>([]);
@@ -44,7 +45,7 @@ export default function AdminApplicationsPage() {
             await loadData();
         } catch (err: any) {
             console.error('Failed to assign reviewer:', err);
-            alert(err.message || 'Failed to assign reviewer');
+            toast.error(err.message || 'Failed to assign reviewer');
         }
     };
 

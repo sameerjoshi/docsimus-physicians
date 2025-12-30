@@ -4,10 +4,11 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Input, Button } from "@/src/components/ui";
 import { useOnboarding } from "@/src/hooks/use-onboarding";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { fadeInUp } from "@/src/lib/animations";
-import { Plus, Upload, CheckCircle, AlertCircle, XCircle, Clock } from "lucide-react";
+import { Upload, CheckCircle, AlertCircle, XCircle, Clock, Camera, FileText, Loader2, User } from "lucide-react";
 import { useProfile } from "@/src/hooks/use-profile";
+import { toast } from "sonner";
 
 interface Step {
   number: number;
@@ -383,7 +384,7 @@ export function RegistrationForm() {
     >
       {/* Header */}
       <div className="text-center">
-        <h1 className="text-3xl font-bold text-black">Provider Registration</h1>
+        <h1 className="text-3xl font-bold text-foreground">Provider Registration</h1>
       </div>
 
       {/* Rejection Alert Banner */}
@@ -409,62 +410,110 @@ export function RegistrationForm() {
         </div>
       )}
 
-      {/* Step Indicators */}
-      <div className="flex justify-center items-center gap-16 px-4">
-        {steps.map((step, idx) => (
-          <div key={step.number} className="flex items-center gap-16">
-            <button
-              onClick={() => setCurrentStep(step.number)}
-              className="flex flex-col items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
-            >
-              <div
-                className={`w-12 h-12 rounded-full flex items-center justify-center font-semibold text-base transition-all border-2 ${currentStep >= step.number
-                  ? "bg-teal-500 text-white border-teal-500"
-                  : "bg-white text-gray-600 border-gray-300"
-                  }`}
-              >
-                {step.number}
-              </div>
-              <span
-                className={`text-sm font-medium text-center ${currentStep >= step.number ? "text-teal-500" : "text-gray-400"
-                  }`}
-              >
-                {step.label}
-              </span>
-            </button>
-            {idx < steps.length - 1 && (
-              <div
-                className={`h-0.5 w-12 transition-all ${currentStep > step.number ? "bg-teal-500" : "bg-gray-300"
-                  }`}
-              />
-            )}
+      {/* Elegant Stepped Progress Indicator */}
+      <div className="w-full max-w-3xl mx-auto px-4 py-4">
+        <div className="relative">
+          {/* Background Line */}
+          <div className="absolute top-5 left-0 right-0 h-1 bg-border rounded-full"
+            style={{
+              left: '2.5rem',
+              right: '2.5rem',
+            }}
+          />
+
+          {/* Active Progress Line */}
+          <div
+            className="absolute top-5 h-1 bg-teal-500 rounded-full transition-all duration-700 ease-out"
+            style={{
+              left: '2.5rem',
+              width: currentStep === steps.length
+                ? `calc(100% - 5rem)`
+                : `calc(${((currentStep - 1) / (steps.length - 1)) * 100}% - 5rem + ${((currentStep - 1) / (steps.length - 1)) * 5}rem)`,
+            }}
+          />
+
+          {/* Steps */}
+          <div className="relative flex justify-between items-start">
+            {steps.map((step) => {
+              const isCompleted = currentStep > step.number;
+              const isCurrent = currentStep === step.number;
+              const isUpcoming = currentStep < step.number;
+
+              return (
+                <button
+                  key={step.number}
+                  onClick={() => setCurrentStep(step.number)}
+                  className="flex flex-col items-center group relative z-10 focus:outline-none focus-visible:outline-none"
+                  style={{ width: `${100 / steps.length}%` }}
+                >
+                  {/* Circle */}
+                  <div
+                    className={`
+                      w-10 h-10 rounded-full flex items-center justify-center
+                      font-semibold text-sm transition-all duration-300
+                      ${isCompleted
+                        ? 'bg-teal-500 text-white shadow-lg shadow-teal-500/30'
+                        : isCurrent
+                          ? 'bg-teal-500 text-white shadow-xl shadow-teal-500/50 scale-110'
+                          : 'bg-card text-muted-foreground border-2 border-border'
+                      }
+                      group-hover:scale-110 group-hover:shadow-lg
+                    `}
+                  >
+                    {isCompleted ? (
+                      <CheckCircle className="w-5 h-5" strokeWidth={2.5} />
+                    ) : (
+                      step.number
+                    )}
+                  </div>
+
+                  {/* Label */}
+                  <div className="mt-3 text-center">
+                    <p
+                      className={`
+                        text-xs font-medium transition-colors duration-300
+                        ${isCompleted || isCurrent
+                          ? 'text-teal-600'
+                          : 'text-muted-foreground'
+                        }
+                        hidden sm:block
+                      `}
+                    >
+                      {step.label}
+                    </p>
+                    {/* Mobile: Show step number only */}
+                    <p className="sm:hidden text-[10px] text-muted-foreground mt-1">
+                      Step {step.number}
+                    </p>
+                  </div>
+                </button>
+              );
+            })}
           </div>
-        ))}
+        </div>
       </div>
 
       {/* Form Container */}
-      <div className="bg-white rounded-lg border border-gray-200 p-10 shadow-sm">
+      <div className="bg-card rounded-lg border border-border p-4 sm:p-6 md:p-10 shadow-sm">
         {currentStep === 1 && (
           <div className="space-y-6">
             {/* Step Title */}
             <div>
-              <h2 className="text-2xl font-bold text-black mb-2">
+              <h2 className="text-2xl font-bold text-foreground mb-2">
                 Step 1: Personal Profile
               </h2>
-              <p className="text-gray-500 text-sm">
+              <p className="text-muted-foreground text-sm">
                 Provide your basic personal information and a profile photo.
               </p>
             </div>
 
             {/* Profile Photo */}
-            <div className="flex justify-center py-4">
+            <div className="flex justify-center py-6">
               <div className="flex flex-col items-center gap-3">
-                <div className="relative w-32 h-32 rounded-full bg-pink-200 flex items-center justify-center overflow-hidden">
-                  <img
-                    src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80"
-                    alt="Profile"
-                    className="w-full h-full object-cover"
-                  />
+                <div className="relative group">
+                  <div className="w-32 h-32 rounded-full bg-muted/80 flex items-center justify-center overflow-hidden border-4 border-background shadow-xl">
+                    <User className="w-16 h-16 text-muted-foreground" />
+                  </div>
                   <input
                     type="file"
                     id="profile-photo-upload"
@@ -475,8 +524,10 @@ export function RegistrationForm() {
                       if (file) {
                         try {
                           await uploadDocument(file, "profilePhoto");
+                          toast.success("Profile photo uploaded successfully!");
                         } catch (error) {
                           console.error("Upload failed:", error);
+                          toast.error("Failed to upload photo. Please try again.");
                         }
                       }
                     }}
@@ -484,40 +535,44 @@ export function RegistrationForm() {
                   <button
                     type="button"
                     onClick={() => document.getElementById("profile-photo-upload")?.click()}
-                    className="absolute bottom-0 right-0 bg-teal-500 text-white rounded-full p-2 hover:bg-teal-600 shadow-lg"
+                    className="absolute bottom-0 right-0 bg-teal-500 text-white rounded-full p-3 hover:bg-teal-600 shadow-lg transition-all duration-300 hover:scale-110 group-hover:shadow-xl"
                   >
-                    <Plus size={18} />
+                    <Camera size={20} />
                   </button>
                 </div>
-                <p className="text-sm text-gray-500">Upload your professional photo</p>
+                <div className="text-center">
+                  <p className="text-sm font-medium text-foreground">Upload your professional photo</p>
+                  <p className="text-xs text-muted-foreground mt-1">PNG or JPG (max 5MB)</p>
+                </div>
               </div>
             </div>
 
             {/* Full Name & Email */}
-            <div className="grid grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <label className="text-sm font-semibold text-gray-900">
+                <label className="text-sm font-semibold text-foreground">
                   First Name <span className="text-red-500">*</span>
                 </label>
                 <Input
                   placeholder="Jane"
                   value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                  className={`border ${errors.firstName ? "border-red-500" : "border-gray-300"}`}
+                  onChange={(e) => setFirstName(e.target.value)
+                  }
+                  className={`border ${errors.firstName ? "border-red-500" : "border-border"}`}
                 />
                 {errors.firstName && (
                   <p className="text-red-500 text-xs font-medium">{errors.firstName}</p>
                 )}
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-semibold text-gray-900">
+                <label className="text-sm font-semibold text-foreground">
                   Last Name <span className="text-red-500">*</span>
                 </label>
                 <Input
                   placeholder="Doe"
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
-                  className={`border ${errors.lastName ? "border-red-500" : "border-gray-300"}`}
+                  className={`border ${errors.lastName ? "border-red-500" : "border-border"}`}
                 />
                 {errors.lastName && (
                   <p className="text-red-500 text-xs font-medium">{errors.lastName}</p>
@@ -527,27 +582,27 @@ export function RegistrationForm() {
 
             {/* Email */}
             <div className="space-y-2">
-              <label className="text-sm font-semibold text-gray-900">
+              <label className="text-sm font-semibold text-foreground">
                 Email Address
               </label>
               <Input
                 placeholder="jane.doe@example.com"
                 value={email}
                 disabled
-                className="border border-gray-300 bg-gray-50"
+                className="border border-border bg-muted"
               />
             </div>
 
             {/* Phone Number */}
             <div className="space-y-2">
-              <label className="text-sm font-semibold text-gray-900">
+              <label className="text-sm font-semibold text-foreground">
                 Phone Number <span className="text-red-500">*</span>
               </label>
               <div className="flex gap-2">
                 <select
                   value={countryCode}
                   onChange={(e) => setCountryCode(e.target.value)}
-                  className="border border-gray-300 rounded-md px-3 py-2 text-sm bg-white"
+                  className="border border-border rounded-md px-3 py-2 text-sm bg-background text-foreground"
                 >
                   <option>+1 (US)</option>
                   <option>+91 (IN)</option>
@@ -558,7 +613,7 @@ export function RegistrationForm() {
                   placeholder="e.g., 555-123-4567"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  className={`flex-1 border ${errors.phone ? "border-red-500" : "border-gray-300"}`}
+                  className={`flex-1 border ${errors.phone ? "border-red-500" : "border-border"}`}
                 />
               </div>
               {errors.phone && (
@@ -568,7 +623,7 @@ export function RegistrationForm() {
 
             {/* Gender */}
             <div className="space-y-2">
-              <label className="text-sm font-semibold text-gray-900">
+              <label className="text-sm font-semibold text-foreground">
                 Gender <span className="text-red-500">*</span>
               </label>
               <div className="flex gap-2">
@@ -580,7 +635,7 @@ export function RegistrationForm() {
                       onClick={() => setGender(option)}
                       className={`px-4 py-2 rounded-lg border text-sm font-medium transition-all ${gender === option
                         ? "bg-teal-500 text-white border-teal-500"
-                        : "border-gray-300 text-gray-700 hover:border-gray-400"
+                        : "border-border text-foreground hover:border-teal-500"
                         }`}
                     >
                       {option}
@@ -595,7 +650,7 @@ export function RegistrationForm() {
 
             {/* Date of Birth */}
             <div className="space-y-2">
-              <label className="text-sm font-semibold text-gray-900">
+              <label className="text-sm font-semibold text-foreground">
                 Date of Birth <span className="text-red-500">*</span>
               </label>
               <input
@@ -604,7 +659,7 @@ export function RegistrationForm() {
                 onChange={(e) => setDob(e.target.value)}
                 max={new Date(new Date().setFullYear(new Date().getFullYear() - 20)).toISOString().split('T')[0]}
                 required
-                className={`w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 ${errors.dob ? "border-red-500" : "border-gray-300"}`}
+                className={`w-full border rounded-md px-3 py-2 text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-teal-500 ${errors.dob ? "border-red-500" : "border-border"}`}
               />
               {errors.dob && (
                 <p className="text-red-500 text-xs font-medium">{errors.dob}</p>
@@ -618,7 +673,6 @@ export function RegistrationForm() {
                 variant="outline"
                 onClick={handlePrevious}
                 disabled={currentStep === 1}
-                className="text-gray-600"
               >
                 Previous
               </Button>
@@ -637,24 +691,24 @@ export function RegistrationForm() {
         {currentStep === 2 && (
           <div className="space-y-6">
             <div>
-              <h2 className="text-2xl font-bold text-black mb-2">
+              <h2 className="text-2xl font-bold text-foreground mb-2">
                 Step 2: Clinic Address
               </h2>
-              <p className="text-gray-500 text-sm">
+              <p className="text-muted-foreground text-sm">
                 Provide your clinic location and contact details.
               </p>
             </div>
 
             {/* Address Line 1 */}
             <div className="space-y-2">
-              <label className="text-sm font-semibold text-gray-900">
+              <label className="text-sm font-semibold text-foreground">
                 Address Line 1 <span className="text-red-500">*</span>
               </label>
               <Input
                 placeholder="Street address, clinic name"
                 value={addressLine1}
                 onChange={(e) => setAddressLine1(e.target.value)}
-                className={`border ${errors.addressLine1 ? "border-red-500" : "border-gray-300"}`}
+                className={`border ${errors.addressLine1 ? "border-red-500" : "border-border"}`}
                 required
               />
               {errors.addressLine1 && (
@@ -664,28 +718,28 @@ export function RegistrationForm() {
 
             {/* Address Line 2 */}
             <div className="space-y-2">
-              <label className="text-sm font-semibold text-gray-900">
+              <label className="text-sm font-semibold text-foreground">
                 Address Line 2
               </label>
               <Input
                 placeholder="Apartment, suite, floor (optional)"
                 value={addressLine2}
                 onChange={(e) => setAddressLine2(e.target.value)}
-                className="border border-gray-300"
+                className="border border-border"
               />
             </div>
 
             {/* City, State, Postal Code */}
-            <div className="grid grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
               <div className="space-y-2">
-                <label className="text-sm font-semibold text-gray-900">
+                <label className="text-sm font-semibold text-foreground">
                   City <span className="text-red-500">*</span>
                 </label>
                 <Input
                   placeholder="Mumbai"
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
-                  className={`border ${errors.city ? "border-red-500" : "border-gray-300"}`}
+                  className={`border ${errors.city ? "border-red-500" : "border-border"}`}
                   required
                 />
                 {errors.city && (
@@ -694,14 +748,14 @@ export function RegistrationForm() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-semibold text-gray-900">
+                <label className="text-sm font-semibold text-foreground">
                   State <span className="text-red-500">*</span>
                 </label>
                 <Input
                   placeholder="Maharashtra"
                   value={addressState}
                   onChange={(e) => setAddressState(e.target.value)}
-                  className={`border ${errors.addressState ? "border-red-500" : "border-gray-300"}`}
+                  className={`border ${errors.addressState ? "border-red-500" : "border-border"}`}
                   required
                 />
                 {errors.addressState && (
@@ -710,14 +764,14 @@ export function RegistrationForm() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-semibold text-gray-900">
+                <label className="text-sm font-semibold text-foreground">
                   Postal Code <span className="text-red-500">*</span>
                 </label>
                 <Input
                   placeholder="400001"
                   value={postalCode}
                   onChange={(e) => setPostalCode(e.target.value)}
-                  className={`border ${errors.postalCode ? "border-red-500" : "border-gray-300"}`}
+                  className={`border ${errors.postalCode ? "border-red-500" : "border-border"}`}
                   required
                 />
                 {errors.postalCode && (
@@ -726,11 +780,10 @@ export function RegistrationForm() {
               </div>
             </div>
 
-            <div className="flex gap-3 pt-4 justify-between">
+            <div className="flex flex-col sm:flex-row gap-3 pt-6 justify-between">
               <Button
                 variant="outline"
                 onClick={handlePrevious}
-                className="text-gray-600"
               >
                 Previous
               </Button>
@@ -748,28 +801,28 @@ export function RegistrationForm() {
         {currentStep === 3 && (
           <div className="space-y-6">
             <div>
-              <h2 className="text-2xl font-bold text-black mb-2">
+              <h2 className="text-2xl font-bold text-foreground mb-2">
                 Step 2: Credentials
               </h2>
-              <p className="text-gray-500 text-sm">
+              <p className="text-muted-foreground text-sm">
                 Provide your medical qualifications and registration details.
               </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <label className="text-sm font-semibold text-gray-900">
+                <label className="text-sm font-semibold text-foreground">
                   Specialization
                 </label>
                 <Input
                   placeholder="e.g., Cardiology"
                   value={specialization}
                   onChange={(e) => setSpecialization(e.target.value)}
-                  className="border border-gray-300"
+                  className="border border-border"
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-semibold text-gray-900">
+                <label className="text-sm font-semibold text-foreground">
                   Years of Experience
                 </label>
                 <Input
@@ -777,20 +830,20 @@ export function RegistrationForm() {
                   type="number"
                   value={experience}
                   onChange={(e) => setExperience(e.target.value)}
-                  className="border border-gray-300"
+                  className="border border-border"
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <label className="text-sm font-semibold text-gray-900">
+                <label className="text-sm font-semibold text-foreground">
                   Medical Council <span className="text-red-500">*</span>
                 </label>
                 <select
                   value={council}
                   onChange={(e) => setCouncil(e.target.value)}
-                  className={`w-full border rounded-md px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-teal-500 ${errors.council ? "border-red-500" : "border-gray-300"}`}
+                  className={`w-full border rounded-md px-3 py-2 text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-teal-500 ${errors.council ? "border-red-500" : "border-border"}`}
                 >
                   <option value="">Select a medical council</option>
                   {MEDICAL_COUNCILS.map((councilName) => (
@@ -804,14 +857,14 @@ export function RegistrationForm() {
                 )}
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-semibold text-gray-900">
+                <label className="text-sm font-semibold text-foreground">
                   Registration Number <span className="text-red-500">*</span>
                 </label>
                 <Input
                   placeholder="e.g., MCI123456"
                   value={registrationNumber}
                   onChange={(e) => setRegistrationNumber(e.target.value)}
-                  className={`border ${errors.registrationNumber ? "border-red-500" : "border-gray-300"}`}
+                  className={`border ${errors.registrationNumber ? "border-red-500" : "border-border"}`}
                 />
                 {errors.registrationNumber && (
                   <p className="text-red-500 text-xs font-medium">{errors.registrationNumber}</p>
@@ -820,25 +873,24 @@ export function RegistrationForm() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-semibold text-gray-900">
+              <label className="text-sm font-semibold text-foreground">
                 License Number <span className="text-red-500">*</span>
               </label>
               <Input
                 placeholder="e.g., LIC123456"
                 value={licenseNumber}
                 onChange={(e) => setLicenseNumber(e.target.value)}
-                className={`border ${errors.licenseNumber ? "border-red-500" : "border-gray-300"}`}
+                className={`border ${errors.licenseNumber ? "border-red-500" : "border-border"}`}
               />
               {errors.licenseNumber && (
                 <p className="text-red-500 text-xs font-medium">{errors.licenseNumber}</p>
               )}
             </div>
 
-            <div className="flex gap-3 pt-4 justify-between">
+            <div className="flex flex-col sm:flex-row gap-3 pt-6 justify-between">
               <Button
                 variant="outline"
                 onClick={handlePrevious}
-                className="text-gray-600"
               >
                 Previous
               </Button>
@@ -856,15 +908,15 @@ export function RegistrationForm() {
         {currentStep === 4 && (
           <div className="space-y-6">
             <div>
-              <h2 className="text-2xl font-bold text-black mb-2">
+              <h2 className="text-2xl font-bold text-foreground mb-2">
                 Step 4: Documents & Verification
               </h2>
-              <p className="text-gray-500 text-sm">
+              <p className="text-muted-foreground text-sm">
                 Upload your credentials and identification documents.
               </p>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-3">
               {documentTypes.map((docType) => {
                 const docState = documentUploads[docType.key];
                 const isUploaded = docState?.uploaded;
@@ -878,111 +930,141 @@ export function RegistrationForm() {
                 const isPending = existingDoc?.status === 'PENDING';
 
                 return (
-                  <div key={docType.key}>
-                    <div className="space-y-2 mb-3">
-                      <label className="text-sm font-semibold text-gray-900">
-                        {docType.label} <span className="text-red-500">*</span>
-                        <span className="text-xs text-gray-500 font-normal ml-2">
-                          ({FILE_TYPE_LABELS[docType.key]})
-                        </span>
-                      </label>
-                    </div>
-                    <input
-                      type="file"
-                      id={`file-${docType.key}`}
-                      className="hidden"
-                      accept={FILE_TYPE_REQUIREMENTS[docType.key]?.join(",")}
-                      onChange={(e) => handleFileChange(docType.key, e)}
-                      disabled={isApproved}
-                    />
-                    <div
-                      onClick={() => !isUploading && !isApproved && document.getElementById(`file-${docType.key}`)?.click()}
-                      className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${isApproved
-                        ? "border-green-300 bg-green-50 cursor-not-allowed opacity-75"
-                        : isRejected
-                          ? "border-red-300 bg-red-50 cursor-pointer hover:border-red-400"
-                          : isUploaded
-                            ? "border-teal-500 bg-teal-50 cursor-pointer"
-                            : uploadError
-                              ? "border-orange-300 bg-orange-50 cursor-pointer hover:border-orange-400"
-                              : "border-gray-300 hover:border-teal-500 cursor-pointer"
-                        }`}
-                    >
-                      <div className="flex flex-col items-center gap-2">
-                        {/* Icon based on status */}
-                        {isApproved ? (
-                          <CheckCircle className="w-8 h-8 text-green-600" />
-                        ) : isRejected ? (
-                          <XCircle className="w-8 h-8 text-red-600" />
-                        ) : uploadError ? (
-                          <AlertCircle className="w-8 h-8 text-orange-600" />
-                        ) : isUploaded ? (
-                          <CheckCircle className="w-8 h-8 text-teal-500" />
-                        ) : isUploading ? (
-                          <div className="animate-spin w-8 h-8 border-4 border-teal-500 border-t-transparent rounded-full" />
-                        ) : (
-                          <Upload className="w-8 h-8 text-gray-400" />
-                        )}
+                  <div key={docType.key} className="border border-border rounded-lg p-3 sm:p-4 hover:border-teal-500/50 transition-colors">
+                    <div className="flex items-start justify-between gap-3">
+                      {/* Left: Document Info */}
+                      <div className="flex items-start gap-2 sm:gap-3 flex-1 min-w-0">
+                        {/* Icon */}
+                        <div className="flex-shrink-0 mt-0.5">
+                          {isApproved ? (
+                            <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
+                          ) : isRejected ? (
+                            <XCircle className="w-4 h-4 sm:w-5 sm:h-5 text-red-600" />
+                          ) : isPending ? (
+                            <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-600" />
+                          ) : uploadError ? (
+                            <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />
+                          ) : isUploaded ? (
+                            <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-teal-500" />
+                          ) : (
+                            <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-muted-foreground" />
+                          )}
+                        </div>
 
-                        {/* Document label */}
-                        <p className="text-sm font-medium text-gray-900">
-                          {docType.label}
-                        </p>
+                        {/* Document Details */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <h4 className="text-xs sm:text-sm font-semibold text-foreground">
+                              {docType.label}
+                            </h4>
+                            <span className="text-xs text-red-500">*</span>
+                          </div>
 
-                        {/* Status message */}
-                        {isApproved ? (
-                          <div className="space-y-1">
-                            <p className="text-xs text-green-700 font-medium">
-                              ✓ Verified - No changes needed
-                            </p>
-                            <p className="text-xs text-green-600">
-                              {existingDoc?.originalName}
-                            </p>
-                          </div>
-                        ) : isRejected ? (
-                          <div className="space-y-1">
-                            <p className="text-xs text-red-700 font-semibold">
-                              Rejected - Please re-upload
-                            </p>
-                            <p className="text-xs text-red-600 bg-red-100 px-2 py-1 rounded">
-                              {existingDoc?.rejectionReason || 'Document needs correction'}
-                            </p>
-                            <p className="text-xs text-blue-600 font-medium mt-1">
-                              Click to upload new document
-                            </p>
-                          </div>
-                        ) : uploadError ? (
-                          <div className="space-y-1">
-                            <p className="text-xs text-orange-700 font-semibold">
-                              Upload Error
-                            </p>
-                            <p className="text-xs text-orange-600 bg-orange-100 px-2 py-1 rounded">
-                              {uploadError}
-                            </p>
-                          </div>
-                        ) : isPending ? (
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-1 justify-center">
-                              <Clock className="w-3 h-3 text-yellow-600" />
-                              <p className="text-xs text-yellow-700 font-medium">
-                                Under Review
+                          <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5">
+                            {FILE_TYPE_LABELS[docType.key]}
+                          </p>
+
+                          {/* Status Messages */}
+                          {isApproved && (
+                            <div className="mt-1.5">
+                              <p className="text-[10px] sm:text-xs text-green-700 font-medium">
+                                ✓ Verified
+                              </p>
+                              <p className="text-[10px] sm:text-xs text-muted-foreground truncate">
+                                {existingDoc?.originalName}
                               </p>
                             </div>
-                            <p className="text-xs text-yellow-600">
-                              {existingDoc?.originalName}
+                          )}
+
+                          {isRejected && (
+                            <div className="mt-1.5 p-1.5 sm:p-2 bg-red-50 rounded border border-red-200">
+                              <p className="text-[10px] sm:text-xs text-red-700 font-semibold">
+                                Rejected - Re-upload required
+                              </p>
+                              <p className="text-[10px] sm:text-xs text-red-600 mt-0.5">
+                                {existingDoc?.rejectionReason || 'Document needs correction'}
+                              </p>
+                            </div>
+                          )}
+
+                          {isPending && (
+                            <div className="mt-1.5">
+                              <p className="text-[10px] sm:text-xs text-yellow-700 font-medium">
+                                Under Review
+                              </p>
+                              <p className="text-[10px] sm:text-xs text-muted-foreground truncate">
+                                {existingDoc?.originalName}
+                              </p>
+                            </div>
+                          )}
+
+                          {uploadError && (
+                            <div className="mt-1.5 p-1.5 sm:p-2 bg-orange-50 rounded border border-orange-200">
+                              <p className="text-[10px] sm:text-xs text-orange-700 font-semibold">
+                                Upload Error
+                              </p>
+                              <p className="text-[10px] sm:text-xs text-orange-600">
+                                {uploadError}
+                              </p>
+                            </div>
+                          )}
+
+                          {isUploaded && !isPending && !isApproved && (
+                            <p className="text-[10px] sm:text-xs text-teal-600 mt-1.5 font-medium truncate">
+                              ✓ {docState.file?.name || 'Uploaded'}
                             </p>
-                          </div>
-                        ) : (
-                          <p className="text-xs text-gray-500">
-                            {isUploaded
-                              ? `✓ ${docState.file?.name || 'Document uploaded'}`
-                              : isUploading
-                                ? "Uploading..."
-                                : "Click to upload or drag & drop"}
-                          </p>
-                        )}
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Right: Upload Button - Always in same row */}
+                      <div className="flex-shrink-0">
+                        <input
+                          type="file"
+                          id={`file-${docType.key}`}
+                          className="hidden"
+                          accept={FILE_TYPE_REQUIREMENTS[docType.key]?.join(",")}
+                          onChange={(e) => handleFileChange(docType.key, e)}
+                          disabled={isApproved}
+                        />
+                        <Button
+                          type="button"
+                          variant={isApproved ? "outline" : "default"}
+                          size="sm"
+                          onClick={() => !isUploading && !isApproved && document.getElementById(`file-${docType.key}`)?.click()}
+                          disabled={isUploading || isApproved}
+                          className={`min-w-[80px] sm:min-w-[100px] text-xs ${isApproved
+                            ? "cursor-not-allowed opacity-60"
+                            : isRejected || uploadError
+                              ? "bg-red-600 hover:bg-red-700 text-white"
+                              : "bg-teal-500 hover:bg-teal-600 text-white"
+                            }`}
+                        >
+                          {isUploading ? (
+                            <div className="flex items-center gap-1 sm:gap-2">
+                              <Loader2 className="w-3 h-3 sm:w-4 sm:h-4 animate-spin" />
+                              <span className="hidden sm:inline">Uploading...</span>
+                              <span className="sm:hidden">...</span>
+                            </div>
+                          ) : isApproved ? (
+                            "Verified"
+                          ) : isUploaded || isPending ? (
+                            <div className="flex items-center gap-1 sm:gap-2">
+                              <Upload className="w-3 h-3 sm:w-4 sm:h-4" />
+                              <span className="hidden sm:inline">Re-upload</span>
+                              <span className="sm:hidden">Re-up</span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1 sm:gap-2">
+                              <Upload className="w-3 h-3 sm:w-4 sm:h-4" />
+                              Upload
+                            </div>
+                          )}
+                        </Button>
                       </div>
                     </div>
+
+                    {/* Error message if validation failed */}
                     {errors[docType.key] && (
                       <p className="text-red-500 text-xs font-medium mt-2">{errors[docType.key]}</p>
                     )}
@@ -991,11 +1073,10 @@ export function RegistrationForm() {
               })}
             </div>
 
-            <div className="flex gap-3 pt-4 justify-between">
+            <div className="flex flex-col sm:flex-row gap-3 pt-6 justify-between">
               <Button
                 variant="outline"
                 onClick={handlePrevious}
-                className="text-gray-600"
               >
                 Previous
               </Button>
@@ -1013,35 +1094,35 @@ export function RegistrationForm() {
         {currentStep === 5 && (
           <div className="space-y-6">
             <div>
-              <h2 className="text-2xl font-bold text-black mb-2">
+              <h2 className="text-2xl font-bold text-foreground mb-2">
                 Step 5: Availability & Preferences
               </h2>
-              <p className="text-gray-500 text-sm">
+              <p className="text-muted-foreground text-sm">
                 Set your consultation schedule, fees, and language preferences.
               </p>
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-semibold text-gray-900">
+              <label className="text-sm font-semibold text-foreground">
                 Consultation Fee (per session)
               </label>
               <div className="flex gap-2">
-                <span className="flex items-center text-gray-600 font-medium">₹</span>
+                <span className="flex items-center text-muted-foreground font-medium">₹</span>
                 <Input
                   placeholder="e.g., 1200"
                   type="number"
                   value={consultationFee}
                   onChange={(e) => setConsultationFee(e.target.value)}
-                  className="flex-1 border border-gray-300"
+                  className="flex-1 border border-border"
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-semibold text-gray-900">
+              <label className="text-sm font-semibold text-foreground">
                 Available Days
               </label>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
                 {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"].map(
                   (day) => (
                     <button
@@ -1056,7 +1137,7 @@ export function RegistrationForm() {
                       }}
                       className={`px-3 py-2 rounded-lg border text-sm font-medium transition-all ${selectedDays.includes(day)
                         ? "bg-teal-500 text-white border-teal-500"
-                        : "border-gray-300 text-gray-700 hover:border-teal-500 hover:text-teal-500"
+                        : "border-border text-foreground hover:border-teal-500 hover:text-teal-500"
                         }`}
                     >
                       {day}
@@ -1067,7 +1148,7 @@ export function RegistrationForm() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-semibold text-gray-900">
+              <label className="text-sm font-semibold text-foreground">
                 Languages
               </label>
               <div className="flex flex-wrap gap-2">
@@ -1085,7 +1166,7 @@ export function RegistrationForm() {
                       }}
                       className={`px-4 py-2 rounded-lg border text-sm font-medium transition-all ${selectedLanguages.includes(lang)
                         ? "bg-teal-500 text-white border-teal-500"
-                        : "border-gray-300 text-gray-700 hover:border-teal-500 hover:text-teal-500"
+                        : "border-border text-foreground hover:border-teal-500 hover:text-teal-500"
                         }`}
                     >
                       {lang}
@@ -1096,14 +1177,14 @@ export function RegistrationForm() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-semibold text-gray-900">
+              <label className="text-sm font-semibold text-foreground">
                 Bio / About You
               </label>
               <textarea
                 placeholder="Tell patients about your expertise and experience..."
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm resize-none"
+                className="w-full border border-border bg-background text-foreground rounded-md px-3 py-2 text-sm resize-none"
                 rows={4}
               />
             </div>
@@ -1112,7 +1193,6 @@ export function RegistrationForm() {
               <Button
                 variant="outline"
                 onClick={handlePrevious}
-                className="text-gray-600"
               >
                 Previous
               </Button>
