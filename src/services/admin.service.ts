@@ -117,6 +117,16 @@ export class AdminService {
             data
         );
     }
+
+    /**
+     * Add a new reviewer by changing user role to REVIEWER
+     */
+    async addReviewer(email: string): Promise<Reviewer> {
+        return apiClient.post<Reviewer>(
+            `${this.baseUrl}/reviewers/add`,
+            { email }
+        );
+    }
 }
 
 export const adminService = new AdminService();

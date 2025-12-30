@@ -6,11 +6,13 @@ import { Card, Button } from "@/src/components/ui";
 import { UserPlus, Mail, FileText, MoreVertical, CheckCircle, Clock } from "lucide-react";
 import { adminService, type Reviewer } from "@/src/services/admin.service";
 import { LoadingSpinner } from "@/src/components/loading-spinner";
+import { AddReviewerModal } from "@/src/components/admin/AddReviewerModal";
 
 export default function ReviewersPage() {
     const [reviewers, setReviewers] = useState<Reviewer[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [showAddModal, setShowAddModal] = useState(false);
 
     useEffect(() => {
         loadReviewers();
@@ -84,7 +86,7 @@ export default function ReviewersPage() {
             {/* Reviewers List Header with Add Button */}
             <div className="flex items-center justify-between">
                 <h3 className="font-semibold text-lg">All Reviewers</h3>
-                <Button size="sm" className="gap-2">
+                <Button size="sm" className="gap-2" onClick={() => setShowAddModal(true)}>
                     <UserPlus className="h-4 w-4" />
                     <span className="hidden sm:inline">Add Reviewer</span>
                     <span className="sm:hidden">Add</span>
@@ -218,6 +220,13 @@ export default function ReviewersPage() {
                     );
                 })}
             </div>
+
+            {/* Add Reviewer Modal */}
+            <AddReviewerModal
+                open={showAddModal}
+                onClose={() => setShowAddModal(false)}
+                onSuccess={loadReviewers}
+            />
         </div>
     );
 }
