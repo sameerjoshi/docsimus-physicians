@@ -42,8 +42,8 @@ export default function ReviewPage() {
   if (error) {
     return (
       <div className="p-8">
-        <Card className="p-6 bg-red-50 border-red-200">
-          <p className="text-red-700">{error}</p>
+        <Card className="p-6 bg-destructive/10 border-destructive/30">
+          <p className="text-destructive">{error}</p>
           <Button onClick={loadApplications} className="mt-4">
             Retry
           </Button>
@@ -63,13 +63,13 @@ export default function ReviewPage() {
       label: "In Progress",
       value: applications.length.toString(),
       icon: Clock,
-      tone: "bg-blue-100 text-blue-700",
+      tone: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
     },
     {
       label: "Completed This Week",
       value: "0",
       icon: ShieldCheck,
-      tone: "bg-green-100 text-green-700",
+      tone: "bg-green-500/10 text-green-600 dark:text-green-400",
     },
   ];
 

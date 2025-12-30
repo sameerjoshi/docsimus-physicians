@@ -51,8 +51,8 @@ export default function AdminPage() {
     if (error) {
         return (
             <div className="p-8">
-                <Card className="p-6 bg-red-50 border-red-200">
-                    <p className="text-red-700">{error}</p>
+                <Card className="p-6 bg-destructive/10 border-destructive/30">
+                    <p className="text-destructive">{error}</p>
                     <Button onClick={loadDashboardData} className="mt-4">
                         Retry
                     </Button>
@@ -76,25 +76,25 @@ export default function AdminPage() {
             label: "Pending Assignment",
             value: unassignedCount.toString(),
             icon: ClipboardList,
-            tone: "bg-amber-100 text-amber-700",
+            tone: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
         },
         {
             label: "Under Review",
             value: underReviewCount.toString(),
             icon: UserCheck,
-            tone: "bg-blue-100 text-blue-700",
+            tone: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
         },
         {
             label: "Verified This Week",
             value: verifiedThisWeek.toString(),
             icon: ShieldCheck,
-            tone: "bg-green-100 text-green-700",
+            tone: "bg-green-500/10 text-green-600 dark:text-green-400",
         },
         {
             label: "Active Reviewers",
             value: reviewers.length.toString(),
             icon: Users,
-            tone: "bg-purple-100 text-purple-700",
+            tone: "bg-purple-500/10 text-purple-600 dark:text-purple-400",
         },
     ];
 

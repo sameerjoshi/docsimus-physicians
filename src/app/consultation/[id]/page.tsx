@@ -28,6 +28,7 @@ import {
   DailyProvider,
   DailyAudio,
   useParticipantProperty,
+  useScreenShare,
 } from "@daily-co/daily-react";
 import DailyIframe, { DailyCall } from "@daily-co/daily-js";
 
@@ -35,6 +36,7 @@ import { AppHeader } from "@/src/components/layout/app-header";
 import { Card } from "@/src/components/ui/card";
 import { Button } from "@/src/components/ui/button";
 import { VideoTile } from "@/src/components/consultations/VideoTile";
+import { ScreenShareTile } from "@/src/components/consultations/ScreenShareTile";
 import { useDailyCall } from "@/src/hooks/use-daily-call";
 import { useConsultations } from "@/src/hooks/use-consultations";
 import { useConsultationSocket } from "@/src/hooks/use-consultation-socket";
@@ -92,21 +94,20 @@ function MediaControls({
 
   return (
     <div className="flex justify-center">
-      <div className="flex items-center gap-2 p-2 bg-card rounded-full border border-border shadow-lg">
+      <div className="flex items-center gap-1 sm:gap-2 p-1.5 sm:p-2 bg-card rounded-full border border-border shadow-lg">
         {/* Mic Toggle */}
         <Button
           variant={isMicEnabled ? "ghost" : "destructive"}
           size="icon"
           onClick={onToggleMic}
-          className={`rounded-full w-12 h-12 ${
-            isMicEnabled ? "hover:bg-accent" : ""
-          }`}
+          className={`rounded-full w-10 h-10 sm:w-12 sm:h-12 ${isMicEnabled ? "hover:bg-accent" : ""
+            }`}
           title={isMicEnabled ? "Mute" : "Unmute"}
         >
           {isMicEnabled ? (
-            <Mic className="w-5 h-5" />
+            <Mic className="w-4 h-4 sm:w-5 sm:h-5" />
           ) : (
-            <MicOff className="w-5 h-5" />
+            <MicOff className="w-4 h-4 sm:w-5 sm:h-5" />
           )}
         </Button>
 
@@ -115,47 +116,44 @@ function MediaControls({
           variant={isCameraEnabled ? "ghost" : "destructive"}
           size="icon"
           onClick={onToggleCamera}
-          className={`rounded-full w-12 h-12 ${
-            isCameraEnabled ? "hover:bg-accent" : ""
-          }`}
+          className={`rounded-full w-10 h-10 sm:w-12 sm:h-12 ${isCameraEnabled ? "hover:bg-accent" : ""
+            }`}
           title={isCameraEnabled ? "Turn off camera" : "Turn on camera"}
         >
           {isCameraEnabled ? (
-            <Video className="w-5 h-5" />
+            <Video className="w-4 h-4 sm:w-5 sm:h-5" />
           ) : (
-            <VideoOff className="w-5 h-5" />
+            <VideoOff className="w-4 h-4 sm:w-5 sm:h-5" />
           )}
         </Button>
 
-        {/* Screen Share */}
+        {/* Screen Share - Hidden on very small screens */}
         <Button
           variant={isScreenSharing ? "secondary" : "ghost"}
           size="icon"
           onClick={onToggleScreenShare}
-          className={`rounded-full w-12 h-12 ${
-            !isScreenSharing ? "hover:bg-accent" : ""
-          }`}
+          className={`hidden sm:flex rounded-full w-10 h-10 sm:w-12 sm:h-12 ${!isScreenSharing ? "hover:bg-accent" : ""
+            }`}
           title={isScreenSharing ? "Stop sharing" : "Share screen"}
         >
-          <MonitorUp className="w-5 h-5" />
+          <MonitorUp className="w-4 h-4 sm:w-5 sm:h-5" />
         </Button>
 
-        <div className="w-px h-8 bg-border mx-2" />
+        <div className="w-px h-6 sm:h-8 bg-border mx-1 sm:mx-2" />
 
         {/* Toggle Notes Panel */}
         <Button
           variant={showNotesPanel ? "secondary" : "ghost"}
           size="icon"
           onClick={onToggleNotes}
-          className={`rounded-full w-12 h-12 ${
-            !showNotesPanel ? "hover:bg-accent" : ""
-          }`}
+          className={`rounded-full w-10 h-10 sm:w-12 sm:h-12 ${!showNotesPanel ? "hover:bg-accent" : ""
+            }`}
           title="Toggle notes panel"
         >
-          <FileText className="w-5 h-5" />
+          <FileText className="w-4 h-4 sm:w-5 sm:h-5" />
         </Button>
 
-        <div className="w-px h-8 bg-border mx-2" />
+        <div className="w-px h-6 sm:h-8 bg-border mx-1 sm:mx-2" />
 
         {/* End Call */}
         <Button
@@ -163,13 +161,13 @@ function MediaControls({
           size="icon"
           onClick={onEndCall}
           disabled={isLeaving}
-          className="rounded-full w-14 h-12"
+          className="rounded-full w-12 h-10 sm:w-14 sm:h-12"
           title="End consultation"
         >
           {isLeaving ? (
-            <Loader2 className="w-5 h-5 animate-spin" />
+            <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
           ) : (
-            <Phone className="w-5 h-5 rotate-[135deg]" />
+            <Phone className="w-4 h-4 sm:w-5 sm:h-5 rotate-[135deg]" />
           )}
         </Button>
       </div>
@@ -248,6 +246,10 @@ function ConsultationRoom({ consultation }: { consultation: Consultation }) {
     clearError,
   } = useDailyCall();
 
+  // Detect active screen shares (from any participant)
+  const { screens } = useScreenShare();
+  const hasActiveScreenShare = screens.length > 0;
+
   // Pre-fill notes when consultation is loaded
   useEffect(() => {
     if (consultation) {
@@ -322,12 +324,15 @@ function ConsultationRoom({ consultation }: { consultation: Consultation }) {
     notifyNotesUpdated,
   ]);
 
-  // Handle exit (just leave the call without ending consultation)
-  const handleExit = useCallback(async () => {
-    setHasLeftCall(true);
-    await leaveCall();
-    router.push("/dashboard");
-  }, [leaveCall, router]);
+  // Screen share with error handling
+  const handleScreenShare = useCallback(async () => {
+    try {
+      await toggleScreenShare();
+    } catch (err) {
+      console.error("Screen share error:", err);
+      toast.error("Could not share screen. Please check permissions.");
+    }
+  }, [toggleScreenShare]);
 
   // Handle end call (save notes, notify socket, leave call)
   const handleEndCall = useCallback(async () => {
@@ -357,162 +362,211 @@ function ConsultationRoom({ consultation }: { consultation: Consultation }) {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="h-screen bg-background flex flex-col overflow-hidden">
       {/* DailyAudio handles all remote participant audio */}
       <DailyAudio />
 
-      {/* Top Bar */}
-      <div className="h-14 bg-card border-b border-border flex items-center justify-between px-4">
-        <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-muted-foreground hover:text-foreground"
-            onClick={handleExit}
-          >
-            <ChevronLeft className="w-4 h-4 mr-1" />
-            Exit
-          </Button>
-          <div className="h-6 w-px bg-border" />
-          <div className="flex items-center gap-2">
+      {/* Top Bar - Responsive */}
+      <div className="h-12 sm:h-14 bg-card border-b border-border flex items-center justify-between px-2 sm:px-4">
+        {/* Left side - Connection status */}
+        <div className="flex items-center gap-2 sm:gap-4">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             <div
-              className={`w-2 h-2 rounded-full ${
-                isConnected ? "bg-green-500" : "bg-yellow-500"
-              } animate-pulse`}
+              className={`w-2 h-2 rounded-full ${isConnected ? "bg-green-500" : "bg-yellow-500"
+                } animate-pulse`}
             />
-            <span className="text-sm text-muted-foreground">
+            <span className="text-xs sm:text-sm text-muted-foreground hidden xs:inline">
               {isConnecting
                 ? "Connecting..."
                 : isConnected
-                ? "Connected"
-                : "Disconnected"}
+                  ? "Connected"
+                  : "Disconnected"}
             </span>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 text-foreground">
-          <Clock className="w-4 h-4 text-muted-foreground" />
-          <span className="font-mono text-lg">
+        {/* Center - Timer */}
+        <div className="flex items-center gap-1.5 sm:gap-2 text-foreground">
+          <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-muted-foreground" />
+          <span className="font-mono text-sm sm:text-lg">
             {formatDuration(callDuration)}
           </span>
         </div>
 
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground mr-2">
-            Patient: {consultation.patient?.name || "Unknown"}
+        {/* Right side - Patient name & fullscreen */}
+        <div className="flex items-center gap-1 sm:gap-2">
+          <span className="text-xs sm:text-sm text-muted-foreground hidden sm:inline truncate max-w-[120px] lg:max-w-none">
+            Patient: {consultation.appointment?.patient?.name || "Unknown"}
           </span>
           <Button
             variant="ghost"
             size="icon"
-            className="text-muted-foreground hover:text-foreground"
+            className="text-muted-foreground hover:text-foreground w-8 h-8 sm:w-10 sm:h-10"
             onClick={toggleFullscreen}
           >
             {isFullscreen ? (
-              <Minimize className="w-5 h-5" />
+              <Minimize className="w-4 h-4 sm:w-5 sm:h-5" />
             ) : (
-              <Maximize className="w-5 h-5" />
+              <Maximize className="w-4 h-4 sm:w-5 sm:h-5" />
             )}
           </Button>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 flex">
-        {/* Video Section */}
+      {/* Main Content - Viewport-fitted layout */}
+      <div className="flex-1 flex overflow-hidden min-h-0">
+        {/* Video Section - Takes remaining space */}
         <div
-          className={`flex-1 p-4 flex flex-col ${showNotesPanel ? "pr-2" : ""}`}
+          className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${showNotesPanel ? "lg:mr-0" : ""
+            }`}
         >
-          {/* Connection Error */}
+          {/* Connection Error - Fixed height, doesn't affect video area */}
           {videoError && (
-            <div className="mb-4 p-3 bg-destructive/10 border border-destructive/30 rounded-lg flex items-center gap-3">
-              <WifiOff className="w-5 h-5 text-destructive" />
-              <span className="text-destructive">{videoError}</span>
-              <Button size="sm" variant="outline" onClick={clearError}>
+            <div className="flex-shrink-0 mx-2 mt-2 sm:mx-4 sm:mt-4 p-2 sm:p-3 bg-destructive/10 border border-destructive/30 rounded-lg flex items-center gap-2 sm:gap-3 text-sm">
+              <WifiOff className="w-4 h-4 sm:w-5 sm:h-5 text-destructive flex-shrink-0" />
+              <span className="text-destructive flex-1 truncate">{videoError}</span>
+              <Button size="sm" variant="outline" onClick={clearError} className="flex-shrink-0">
                 Dismiss
               </Button>
             </div>
           )}
 
-          {/* Video Grid */}
-          <div className="flex-1 grid gap-4 mb-4">
-            {/* Remote participant (patient) - main view */}
-            <div className="relative">
-              <VideoTile
-                sessionId={remoteParticipantId}
-                label={consultation.patient?.name || "Patient"}
-              />
-
-              {/* Waiting indicator when no remote participant */}
-              {!remoteParticipantId && isConnected && (
-                <div className="absolute inset-0 flex items-center justify-center bg-card/90 backdrop-blur-sm rounded-xl">
-                  <div className="text-center">
-                    <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-3" />
-                    <p className="text-foreground font-medium">
-                      Waiting for patient to join...
-                    </p>
-                    <p className="text-muted-foreground text-sm mt-1">
-                      The patient will appear here once connected
-                    </p>
-                  </div>
+          {/* Video Grid Container - Fills available space */}
+          <div className="flex-1 p-2 sm:p-4 flex flex-col min-h-0 relative">
+            {/* Adaptive Video Grid - Side-by-side on desktop when screen sharing */}
+            <div className={`flex-1 flex min-h-0 gap-2 sm:gap-3 ${hasActiveScreenShare
+              ? "flex-col lg:flex-row"
+              : "flex-col"
+              }`}>
+              {/* Screen Share - Takes main area when active */}
+              {hasActiveScreenShare && (
+                <div className="flex-1 min-h-0 lg:min-w-0">
+                  <ScreenShareTile
+                    className="w-full h-full"
+                    onStopSharing={handleScreenShare}
+                  />
                 </div>
               )}
+
+              {/* Participant Videos - Sidebar on desktop when screen sharing */}
+              <div className={`${hasActiveScreenShare
+                ? "flex-shrink-0 lg:w-[200px] xl:w-[280px] flex flex-row lg:flex-col gap-2"
+                : "flex-1 flex flex-col"
+                } min-h-0`}>
+                {/* Remote Participant (Patient) */}
+                <div className={`relative rounded-xl overflow-hidden bg-muted ${hasActiveScreenShare
+                  ? "flex-1 lg:flex-none lg:aspect-video min-h-[80px]"
+                  : "flex-1 min-h-[200px]"
+                  }`}>
+                  <VideoTile
+                    sessionId={remoteParticipantId}
+                    label={consultation.appointment?.patient?.name || "Patient"}
+                    className="absolute inset-0 w-full h-full"
+                  />
+
+                  {/* Waiting indicator when no remote participant */}
+                  {!remoteParticipantId && isConnected && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-card/90 backdrop-blur-sm rounded-xl">
+                      <div className="text-center px-4">
+                        <Loader2 className="w-6 h-6 sm:w-8 sm:h-8 animate-spin text-primary mx-auto mb-2 sm:mb-3" />
+                        <p className="text-foreground font-medium text-sm sm:text-base">
+                          Waiting for patient to join...
+                        </p>
+                        <p className="text-muted-foreground text-xs sm:text-sm mt-1">
+                          The patient will appear here once connected
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Self view - Picture-in-Picture overlay (only when no screen share) */}
+                  {!hasActiveScreenShare && (
+                    <div className="absolute bottom-3 right-3 sm:bottom-4 sm:right-4 w-[100px] sm:w-[140px] md:w-[180px] aspect-video rounded-lg overflow-hidden shadow-lg border-2 border-background/50 z-10">
+                      <VideoTile
+                        sessionId={localSessionId}
+                        isLocal
+                        label="You"
+                        className="w-full h-full"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Self view - Separate tile when screen sharing */}
+                {hasActiveScreenShare && (
+                  <div className="flex-1 lg:flex-none lg:aspect-video relative rounded-xl overflow-hidden bg-muted min-h-[80px]">
+                    <VideoTile
+                      sessionId={localSessionId}
+                      isLocal
+                      label="You"
+                      className="absolute inset-0 w-full h-full"
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Control Bar - Fixed at bottom of video area */}
+            <div className="flex-shrink-0 pt-2 sm:pt-4">
+              <MediaControls
+                onToggleMic={toggleMic}
+                onToggleCamera={toggleCamera}
+                onToggleScreenShare={handleScreenShare}
+                onToggleNotes={() => setShowNotesPanel(!showNotesPanel)}
+                onEndCall={() => setShowEndCallDialog(true)}
+                showNotesPanel={showNotesPanel}
+                isScreenSharing={isSharingScreen}
+                isLeaving={isLeaving}
+                localSessionId={localSessionId}
+              />
             </div>
           </div>
-
-          {/* Self view - picture in picture */}
-          <div className="absolute bottom-24 right-4 w-48 z-10">
-            <VideoTile sessionId={localSessionId} isLocal label="You" />
-          </div>
-
-          {/* Control Bar */}
-          <MediaControls
-            onToggleMic={toggleMic}
-            onToggleCamera={toggleCamera}
-            onToggleScreenShare={toggleScreenShare}
-            onToggleNotes={() => setShowNotesPanel(!showNotesPanel)}
-            onEndCall={() => setShowEndCallDialog(true)}
-            showNotesPanel={showNotesPanel}
-            isScreenSharing={isSharingScreen}
-            isLeaving={isLeaving}
-            localSessionId={localSessionId}
-          />
         </div>
 
-        {/* Notes Panel */}
+        {/* Notes Panel - Responsive: full width overlay on mobile, side panel on desktop */}
         <AnimatePresence>
           {showNotesPanel && (
             <motion.div
-              initial={{ width: 0, opacity: 0 }}
-              animate={{ width: 400, opacity: 1 }}
-              exit={{ width: 0, opacity: 0 }}
-              className="border-l border-border bg-card overflow-hidden"
+              initial={{ opacity: 0, x: 100 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 100 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="fixed lg:relative inset-0 lg:inset-auto z-20 lg:z-auto w-full lg:w-[320px] xl:w-[380px] flex-shrink-0 border-l border-border bg-card"
             >
-              <div className="w-[400px] h-full flex flex-col">
+              <div className="w-full h-full flex flex-col overflow-hidden">
                 {/* Panel Header */}
-                <div className="p-4 border-b border-border">
-                  <h3 className="text-foreground font-semibold flex items-center gap-2">
-                    <ClipboardList className="w-5 h-5 text-primary" />
+                <div className="p-3 sm:p-4 border-b border-border flex items-center justify-between">
+                  <h3 className="text-foreground font-semibold flex items-center gap-2 text-sm sm:text-base">
+                    <ClipboardList className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
                     Consultation Notes
                   </h3>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="lg:hidden w-8 h-8"
+                    onClick={() => setShowNotesPanel(false)}
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </Button>
                 </div>
 
                 {/* Patient Info */}
-                <div className="p-4 border-b border-border">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                      <User className="w-5 h-5 text-primary" />
+                <div className="p-3 sm:p-4 border-b border-border">
+                  <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                      <User className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
                     </div>
-                    <div>
-                      <p className="text-foreground font-medium">
-                        {consultation.patient?.name || "Patient"}
+                    <div className="min-w-0">
+                      <p className="text-foreground font-medium text-sm sm:text-base truncate">
+                        {consultation.appointment?.patient?.name || "Patient"}
                       </p>
-                      <p className="text-sm text-muted-foreground">
-                        {consultation.patient?.email || ""}
+                      <p className="text-xs sm:text-sm text-muted-foreground truncate">
+                        {consultation.appointment?.patient?.email || ""}
                       </p>
                     </div>
                   </div>
                   {consultation.appointment?.reason && (
-                    <div className="text-sm">
+                    <div className="text-xs sm:text-sm">
                       <span className="text-muted-foreground">Reason: </span>
                       <span className="text-foreground">
                         {consultation.appointment.reason}
@@ -520,7 +574,7 @@ function ConsultationRoom({ consultation }: { consultation: Consultation }) {
                     </div>
                   )}
                   {consultation.appointment?.symptoms && (
-                    <div className="text-sm mt-1">
+                    <div className="text-xs sm:text-sm mt-1">
                       <span className="text-muted-foreground">Symptoms: </span>
                       <span className="text-foreground">
                         {consultation.appointment.symptoms}
@@ -530,52 +584,52 @@ function ConsultationRoom({ consultation }: { consultation: Consultation }) {
                 </div>
 
                 {/* Notes Form */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4">
                   {/* Doctor Notes */}
                   <div>
-                    <label className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
-                      <FileText className="w-4 h-4 text-primary" />
+                    <label className="flex items-center gap-2 text-xs sm:text-sm font-medium text-foreground mb-1.5 sm:mb-2">
+                      <FileText className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary" />
                       Doctor Notes
                     </label>
                     <textarea
                       value={doctorNotes}
                       onChange={(e) => setDoctorNotes(e.target.value)}
                       placeholder="Enter clinical notes and diagnosis..."
-                      className="w-full h-40 px-3 py-2 bg-input border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+                      className="w-full h-28 sm:h-40 px-2.5 sm:px-3 py-2 bg-input border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none"
                     />
                   </div>
 
                   {/* Prescription */}
                   <div>
-                    <label className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
-                      <Pill className="w-4 h-4 text-primary" />
+                    <label className="flex items-center gap-2 text-xs sm:text-sm font-medium text-foreground mb-1.5 sm:mb-2">
+                      <Pill className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary" />
                       Prescription
                     </label>
                     <textarea
                       value={prescription}
                       onChange={(e) => setPrescription(e.target.value)}
                       placeholder="Enter prescription..."
-                      className="w-full h-32 px-3 py-2 bg-input border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+                      className="w-full h-20 sm:h-32 px-2.5 sm:px-3 py-2 bg-input border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none"
                     />
                   </div>
 
                   {/* Follow-up Date */}
                   <div>
-                    <label className="flex items-center gap-2 text-sm font-medium text-foreground mb-2">
-                      <Clock className="w-4 h-4 text-primary" />
+                    <label className="flex items-center gap-2 text-xs sm:text-sm font-medium text-foreground mb-1.5 sm:mb-2">
+                      <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary" />
                       Follow-up Date
                     </label>
                     <input
                       type="date"
                       value={followUpDate}
                       onChange={(e) => setFollowUpDate(e.target.value)}
-                      className="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                      className="w-full px-2.5 sm:px-3 py-2 bg-input border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                     />
                   </div>
                 </div>
 
                 {/* Save Button */}
-                <div className="p-4 border-t border-border">
+                <div className="p-3 sm:p-4 border-t border-border">
                   <Button
                     className="w-full"
                     onClick={saveNotes}

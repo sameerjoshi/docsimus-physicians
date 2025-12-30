@@ -22,7 +22,7 @@ export function useDailyCall() {
     const [error, setError] = useState<string | null>(null);
     const [isLeaving, setIsLeaving] = useState(false);
     const [callDuration, setCallDuration] = useState(0);
-    const [callStartTime, setCallStartTime] = useState<Date | null>(null);
+    const callStartTimeRef = useRef<number | null>(null);
     const [meetingEndedByOther, setMeetingEndedByOther] = useState(false);
     const durationIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -53,21 +53,35 @@ export function useDailyCall() {
 
     // Start duration tracking when connected
     useEffect(() => {
-        if (isConnected && !callStartTime) {
-            const startTime = new Date();
-            setCallStartTime(startTime);
+        if (isConnected) {
+            // Start tracking when we connect
+            if (!callStartTimeRef.current) {
+                callStartTimeRef.current = Date.now();
+            }
 
+            // Start the interval
             durationIntervalRef.current = setInterval(() => {
-                setCallDuration(Math.floor((Date.now() - startTime.getTime()) / 1000));
+                if (callStartTimeRef.current) {
+                    setCallDuration(Math.floor((Date.now() - callStartTimeRef.current) / 1000));
+                }
             }, 1000);
-        }
 
-        return () => {
+            return () => {
+                if (durationIntervalRef.current) {
+                    clearInterval(durationIntervalRef.current);
+                    durationIntervalRef.current = null;
+                }
+            };
+        } else {
+            // Reset when disconnected
+            callStartTimeRef.current = null;
+            setCallDuration(0);
             if (durationIntervalRef.current) {
                 clearInterval(durationIntervalRef.current);
+                durationIntervalRef.current = null;
             }
-        };
-    }, [isConnected, callStartTime]);
+        }
+    }, [isConnected]);
 
     // Join call
     const joinCall = useCallback(async (roomUrl: string, token?: string) => {
@@ -113,7 +127,7 @@ export function useDailyCall() {
         } finally {
             setIsLeaving(false);
             setCallDuration(0);
-            setCallStartTime(null);
+            callStartTimeRef.current = null;
         }
     }, [daily]);
 
@@ -133,10 +147,16 @@ export function useDailyCall() {
 
     // Toggle screen share
     const toggleScreenShare = useCallback(async () => {
-        if (isSharingScreen) {
-            stopScreenShare();
-        } else {
-            await startScreenShare();
+        try {
+            if (isSharingScreen) {
+                stopScreenShare();
+            } else {
+                await startScreenShare();
+            }
+        } catch (err) {
+            console.error('[DailyCall] Screen share error:', err);
+            // Don't throw - let the component handle the error
+            throw err;
         }
     }, [isSharingScreen, startScreenShare, stopScreenShare]);
 

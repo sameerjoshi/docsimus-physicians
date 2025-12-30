@@ -52,6 +52,9 @@ export interface Consultation {
         symptoms?: string;
         scheduledAt: string;
         type: 'SCHEDULED' | 'INSTANT';
+        contextSummary?: string;
+        patient?: Patient;
+        doctor?: Doctor;
     };
     // Video room information
     roomUrl?: string;

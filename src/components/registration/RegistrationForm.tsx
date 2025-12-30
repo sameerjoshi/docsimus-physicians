@@ -389,20 +389,20 @@ export function RegistrationForm() {
 
       {/* Rejection Alert Banner */}
       {applicationStatus?.status === 'REJECTED' && (
-        <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-r-md shadow-sm">
+        <div className="bg-destructive/10 border-l-4 border-destructive p-4 rounded-r-md shadow-sm">
           <div className="flex items-start">
-            <AlertCircle className="h-5 w-5 text-red-500 mt-0.5 mr-3 flex-shrink-0" />
+            <AlertCircle className="h-5 w-5 text-destructive mt-0.5 mr-3 flex-shrink-0" />
             <div className="flex-1">
-              <h3 className="text-sm font-semibold text-red-800 mb-1">
+              <h3 className="text-sm font-semibold text-destructive mb-1">
                 Application Rejected
               </h3>
-              <p className="text-sm text-red-700 mb-2">
+              <p className="text-sm text-destructive/90 mb-2">
                 {applicationStatus.rejectionReason || 'Your application has been rejected. Please review the feedback below and make necessary corrections.'}
               </p>
-              <p className="text-sm text-red-600 font-medium">
+              <p className="text-sm text-destructive/80 font-medium">
                 Please fix the rejected documents and resubmit your application.
               </p>
-              <p className="text-xs text-red-600 mt-2">
+              <p className="text-xs text-destructive/70 mt-2">
                 Verified documents are locked and don't need changes.
               </p>
             </div>
@@ -977,11 +977,11 @@ export function RegistrationForm() {
                           )}
 
                           {isRejected && (
-                            <div className="mt-1.5 p-1.5 sm:p-2 bg-red-50 rounded border border-red-200">
-                              <p className="text-[10px] sm:text-xs text-red-700 font-semibold">
+                            <div className="mt-1.5 p-1.5 sm:p-2 bg-destructive/10 rounded border border-destructive/30">
+                              <p className="text-[10px] sm:text-xs text-destructive font-semibold">
                                 Rejected - Re-upload required
                               </p>
-                              <p className="text-[10px] sm:text-xs text-red-600 mt-0.5">
+                              <p className="text-[10px] sm:text-xs text-destructive/80 mt-0.5">
                                 {existingDoc?.rejectionReason || 'Document needs correction'}
                               </p>
                             </div>

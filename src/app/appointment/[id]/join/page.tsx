@@ -231,8 +231,8 @@ export default function JoinConsultationPage() {
             )}
 
             {/* Pre-call Checklist */}
-            <Card className="p-6 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800">
-              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-green-800 dark:text-green-300">
+            <Card className="p-6 bg-primary/5 border-primary/20">
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-primary">
                 <CheckCircle2 className="w-5 h-5" />
                 Pre-Call Checklist
               </h3>
@@ -243,8 +243,8 @@ export default function JoinConsultationPage() {
                   'Quiet environment for the consultation',
                   'Patient information reviewed',
                 ].map((item, index) => (
-                  <li key={index} className="flex items-center gap-2 text-green-700 dark:text-green-300">
-                    <CheckCircle2 className="w-4 h-4" />
+                  <li key={index} className="flex items-center gap-2 text-foreground">
+                    <CheckCircle2 className="w-4 h-4 text-primary" />
                     {item}
                   </li>
                 ))}
