@@ -52,6 +52,18 @@ export class ApiClient {
                     statusCode: response.status,
                     error: data.error,
                 };
+
+                // Handle 401 Unauthorized - JWT expired or invalid
+                // Only clear token, let the RouteGuard handle the redirect
+                if (response.status === 401 && typeof window !== 'undefined') {
+                    console.warn('[API Client] 401 Unauthorized - Token expired or invalid');
+
+                    // Clear authentication data
+                    localStorage.removeItem('accessToken');
+                    localStorage.removeItem('user');
+                    // Don't force redirect here, let the RouteGuard component handle it
+                }
+
                 throw error;
             }
 

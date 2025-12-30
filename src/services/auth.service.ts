@@ -81,6 +81,7 @@ export class AuthService {
 
     isAuthenticated(): boolean {
         if (typeof window === 'undefined') return false;
+        // Check token existence - server will validate expiration via 401 responses
         return !!localStorage.getItem('accessToken');
     }
 }
