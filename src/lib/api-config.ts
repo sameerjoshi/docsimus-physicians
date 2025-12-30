@@ -30,14 +30,11 @@ export const API_ENDPOINTS = {
         cancel: (id: string) => `/appointments/${id}`,
         upcomingCount: '/appointments/upcoming-count',
     },
-    timeSlots: {
-        // Schedule
-        weeklySchedule: '/doctor/slots/schedule/weekly',
-
-        // Time Slots
-        slots: '/doctor/slots',
-        slotsBulk: '/doctor/slots/bulk',
-        slotById: (slotId: string) => `/doctor/slots/${slotId}`,
+    availabilities: {
+        // Doctor Availabilities
+        list: '/doctor/availabilities',
+        bulk: '/doctor/availabilities/bulk',
+        byId: (availabilityId: string) => `/doctor/availabilities/${availabilityId}`,
     },
     consultations: {
         // Instant Consultations

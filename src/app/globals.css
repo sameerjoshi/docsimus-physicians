@@ -70,6 +70,9 @@
   --assistant-message-bg: #2f2f2f;
   --assistant-message-text: #ffffff;
   --assistant-message-border: #404040;
+
+  /* Color scheme for native form controls (date/time pickers) */
+  color-scheme: dark;
 }
 
 @theme inline {
@@ -372,8 +375,7 @@ button,
 /* Apple-style Glass morphism - Realistic glass effects */
 .glass-light {
   backdrop-filter: blur(28px) saturate(180%) brightness(105%) contrast(120%);
-  -webkit-backdrop-filter: blur(28px) saturate(170%) brightness(105%)
-    contrast(115%);
+  -webkit-backdrop-filter: blur(28px) saturate(170%) brightness(105%) contrast(115%);
   background: rgba(255, 255, 255, 0.68);
   border: 1px solid rgba(255, 255, 255, 0.16);
   border-radius: 12px;
@@ -390,8 +392,7 @@ button,
 
 .glass-medium {
   backdrop-filter: blur(32px) saturate(180%) brightness(108%) contrast(118%);
-  -webkit-backdrop-filter: blur(32px) saturate(180%) brightness(108%)
-    contrast(118%);
+  -webkit-backdrop-filter: blur(32px) saturate(180%) brightness(108%) contrast(118%);
   background: rgba(255, 255, 255, 0.72);
   border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: 14px;

@@ -72,11 +72,6 @@ export default function DashboardPage() {
   const isRejected =
     profile?.status === "REJECTED" || profile?.status === "rejected";
 
-  // Calculate pending appointments count
-  const pendingCount = todayAppointments.filter(
-    (apt) => apt.status === "PENDING"
-  ).length;
-
   const statCards = [
     {
       title: "Total Patients",
@@ -94,7 +89,7 @@ export default function DashboardPage() {
       icon: Calendar,
       color: "text-green-600",
       bgColor: "bg-green-500/10",
-      change: pendingCount > 0 ? `${pendingCount} pending` : "All confirmed",
+      change: "All confirmed",
     },
     {
       title: "Upcoming",

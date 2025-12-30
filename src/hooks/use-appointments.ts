@@ -16,7 +16,6 @@ interface UseAppointmentsActions {
     fetchUpcomingAppointmentsCount: () => Promise<void>;
     fetchAppointments: (params?: QueryAppointmentsParams) => Promise<void>;
     fetchTodayAppointments: () => Promise<void>;
-    fetchWeekAppointments: (weekStartDate: Date) => Promise<void>;
 }
 
 export function useAppointments(): UseAppointmentsState & UseAppointmentsActions {
@@ -66,17 +65,6 @@ export function useAppointments(): UseAppointmentsState & UseAppointmentsActions
         }
     }, []);
 
-    const fetchWeekAppointments = useCallback(async (weekStartDate: Date) => {
-        try {
-            setState(prev => ({ ...prev, isLoading: true, error: null }));
-            const appointments = await appointmentsService.getWeekAppointments(weekStartDate);
-            setState(prev => ({ ...prev, appointments: appointments, isLoading: false }));
-        } catch (err: any) {
-            const message = err.message || 'Failed to fetch week appointments';
-            setState(prev => ({ ...prev, error: message, isLoading: false }));
-        }
-    }, []);
-
     return {
         // State
         ...state,
@@ -85,6 +73,5 @@ export function useAppointments(): UseAppointmentsState & UseAppointmentsActions
         fetchUpcomingAppointmentsCount,
         fetchAppointments,
         fetchTodayAppointments,
-        fetchWeekAppointments,
     };
 }

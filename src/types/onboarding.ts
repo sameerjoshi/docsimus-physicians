@@ -33,6 +33,7 @@ export interface DoctorAddress {
 
 export interface DoctorProfessional {
   registrationNumber: string;
+  licenseNumber?: string;
   council: string;
   specialization: string;
   experience: string;

@@ -50,6 +50,7 @@ const convertBackendToState = async (profile: DoctorProfile): Promise<DoctorOnbo
             phone: profile.phone || "",
             email: profile.user?.email || "",
             dob: profile.dob ? profile.dob.split('T')[0] : "",
+            gender: profile.gender || "",
         },
         address: {
             addressLine1: profile.addressLine1 || "",
@@ -60,6 +61,7 @@ const convertBackendToState = async (profile: DoctorProfile): Promise<DoctorOnbo
         },
         professional: {
             registrationNumber: profile.registrationNumber || "",
+            licenseNumber: profile.licenseNumber || "",
             council: profile.council || "",
             specialization: profile.specialization || "",
             experience: profile.experience || "",

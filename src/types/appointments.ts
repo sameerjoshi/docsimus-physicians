@@ -3,14 +3,15 @@
 // ==========================================
 
 export type AppointmentStatus =
-    | 'PENDING'
     | 'CONFIRMED'
     | 'IN_PROGRESS'
     | 'COMPLETED'
     | 'CANCELLED'
-    | 'NO_SHOW';
+    | 'RESCHEDULED'
+    | 'NO_SHOW'
+    | 'REMINDER_SENT';
 
-export type AppointmentType = 'SCHEDULED' | 'INSTANT';
+export type AppointmentType = 'SCHEDULED' | 'INSTANT' | 'FOLLOW_UP';
 
 export interface Patient {
     id: string;

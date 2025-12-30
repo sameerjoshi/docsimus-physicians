@@ -2,12 +2,14 @@
 // PATIENTS TYPE DEFINITIONS
 // ==========================================
 
+import { AppointmentStatus, AppointmentType } from "./appointments";
+
 export interface PatientAppointment {
     id: string;
     scheduledAt: string;
     duration: number;
-    type: 'SCHEDULED' | 'INSTANT';
-    status: 'PENDING' | 'CONFIRMED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW';
+    type: AppointmentType;
+    status: AppointmentStatus;
     reason?: string;
     symptoms?: string;
     consultation?: {

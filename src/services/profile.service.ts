@@ -44,6 +44,7 @@ export class ProfileService {
             if (state.profile.lastName !== undefined) updateData.lastName = state.profile.lastName;
             if (state.profile.phone !== undefined) updateData.phone = state.profile.phone;
             if (state.profile.dob !== undefined) updateData.dob = state.profile.dob;
+            if (state.profile.gender !== undefined) updateData.gender = state.profile.gender;
         }
 
         // Address info
@@ -59,6 +60,8 @@ export class ProfileService {
         if (state.professional) {
             if (state.professional.registrationNumber)
                 updateData.registrationNumber = state.professional.registrationNumber;
+            if (state.professional.licenseNumber)
+                updateData.licenseNumber = state.professional.licenseNumber;
             if (state.professional.council) updateData.council = state.professional.council;
             if (state.professional.specialization)
                 updateData.specialization = state.professional.specialization;

@@ -110,8 +110,11 @@ export function RouteGuard({
                                 return;
                             }
                         } else if (profile.status === "VERIFIED") {
-                            // VERIFIED: Can access all pages
-                            // No redirect needed
+                            // VERIFIED: Redirect to dashboard
+                            if (currentPath === "/registration" || currentPath === "/application-status") {
+                                router.push("/dashboard");
+                                return;
+                            }
                         }
                     }
                 } catch (error) {
