@@ -77,26 +77,6 @@ export class AppointmentsService {
     }
 
     /**
-     * Get appointments for a specific week
-     */
-    async getWeekAppointments(weekStartDate: Date): Promise<Appointment[]> {
-        const weekStart = new Date(weekStartDate);
-        weekStart.setHours(0, 0, 0, 0);
-
-        const weekEnd = new Date(weekStart);
-        weekEnd.setDate(weekEnd.getDate() + 7);
-        weekEnd.setHours(23, 59, 59, 999);
-
-        const response = await this.getAppointments({
-            fromDate: weekStart.toISOString(),
-            toDate: weekEnd.toISOString(),
-            limit: 100,
-        });
-
-        return response.appointments;
-    }
-
-    /**
      * Build query string from params object
      */
     private buildQueryString(params: Record<string, any>): string {

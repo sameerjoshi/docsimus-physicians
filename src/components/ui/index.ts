@@ -8,3 +8,4 @@ export { Avatar } from "./avatar";
 export { Toast } from "./toast";
 export { Skeleton, CardSkeleton, AvatarSkeleton, TableRowSkeleton } from "./skeleton";
 export { Label } from "./label";
+export { Checkbox } from "./checkbox";
