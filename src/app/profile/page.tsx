@@ -133,13 +133,13 @@ export default function ProfilePage() {
                     </span>
                   </div>
                 </div>
-                <Button
+                {/* <Button
                   variant={editing ? 'default' : 'outline'}
                   onClick={() => (editing ? handleSave() : setEditing(true))}
                   className="w-full sm:w-auto"
                 >
                   {editing ? <><Save className="h-4 w-4 mr-2" /> Save</> : <><Edit className="h-4 w-4 mr-2" /> Edit</>}
-                </Button>
+                </Button> */}
               </div>
             </Card>
           </motion.div>

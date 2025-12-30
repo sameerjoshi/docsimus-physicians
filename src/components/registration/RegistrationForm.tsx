@@ -174,6 +174,7 @@ export function RegistrationForm() {
     setLastName(state.profile.lastName || "");
     setPhone(state.profile.phone || "");
     setEmail(state.profile.email || state.auth.email || "");
+    setGender(state.profile.gender || "");
 
     // Format DOB for date input (YYYY-MM-DD)
     if (state.profile.dob) {
@@ -196,6 +197,7 @@ export function RegistrationForm() {
     setExperience(state.professional.experience || "");
     setCouncil(state.professional.council || "");
     setRegistrationNumber(state.professional.registrationNumber || "");
+    setLicenseNumber(state.professional.licenseNumber || "");
 
     // Load availability info
     setConsultationFee(state.availability.fee || "");
@@ -347,6 +349,7 @@ export function RegistrationForm() {
           experience,
           council,
           registrationNumber,
+          licenseNumber,
         });
       }
     } else if (currentStep === 4) {
