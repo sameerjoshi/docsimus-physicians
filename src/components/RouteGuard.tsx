@@ -27,13 +27,13 @@ export function RouteGuard({
             // Wait for client-side hydration
             await new Promise(resolve => setTimeout(resolve, 0));
 
-            // Check authentication
+            // Check authentication (this now also validates token expiration)
             const isAuthenticated = authService.isAuthenticated();
 
             console.log("RouteGuard check:", { isAuthenticated, requireAuth, requireRole });
 
             if (requireAuth && !isAuthenticated) {
-                console.log("Not authenticated, redirecting to login");
+                console.log("Not authenticated or token expired, redirecting to login");
                 router.push("/login");
                 return;
             }
