@@ -8,7 +8,6 @@ import {
   Consultation,
   ConsultationRequestCancelledEvent,
 } from '../../types/consultations';
-import { toast } from 'sonner';
 
 // ==========================================
 // CONTEXT TYPES
@@ -23,7 +22,7 @@ interface ConsultationContextValue {
   unreadCount: number;
 
   // Actions
-  acceptRequest: (requestId: string) => Promise<{ appointmentId: string }>;
+  acceptRequest: (requestId: string) => Promise<void>;
   rejectRequest: (requestId: string) => Promise<void>;
   markAsRead: (notificationId: string) => void;
   clearNotification: (notificationId: string) => void;
@@ -85,67 +84,39 @@ export function ConsultationProvider({ children }: ConsultationProviderProps) {
   }, []);
 
   // Use the consultation socket hook
-  const { isConnected, respondToRequest } = useConsultationSocket({
+  const { isConnected, acceptRequest, rejectRequest } = useConsultationSocket({
     onConsultationRequest: handleConsultationRequest,
     onRequestCancelled: handleRequestCancelled,
   });
 
   // Accept a consultation request
-  const acceptRequest = useCallback(
-    async (requestId: string): Promise<{ appointmentId: string }> => {
-      try {
-        const result = await respondToRequest(requestId, true);
+  const handleAcceptRequest = useCallback(
+    async (requestId: string): Promise<void> => {
+      const result = await acceptRequest(requestId);
 
-        if (result.success && result.appointmentId) {
-          // Remove from pending
-          setPendingRequests((prev) =>
-            prev.filter((r) => r.requestId !== requestId)
-          );
-
-          toast.success('Consultation Accepted', {
-            description: 'Redirecting to consultation...',
-          });
-
-          return { appointmentId: result.appointmentId };
-        } else {
-          throw new Error(result.error || 'Failed to accept request');
-        }
-      } catch (error) {
-        console.error('Failed to accept request:', error);
-        toast.error('Failed to Accept', {
-          description: error instanceof Error ? error.message : 'Please try again',
-        });
-        throw error;
+      if (result.success) {
+        // Remove from pending
+        setPendingRequests((prev) =>
+          prev.filter((r) => r.requestId !== requestId)
+        );
       }
     },
-    [respondToRequest]
+    [acceptRequest]
   );
 
   // Reject a consultation request
-  const rejectRequest = useCallback(
+  const handleRejectRequest = useCallback(
     async (requestId: string) => {
-      try {
-        const result = await respondToRequest(requestId, false);
+      const result = await rejectRequest(requestId);
 
-        if (result.success) {
-          // Remove from pending
-          setPendingRequests((prev) =>
-            prev.filter((r) => r.requestId !== requestId)
-          );
-
-          toast.info('Request Declined');
-        } else {
-          throw new Error(result.error || 'Failed to decline request');
-        }
-      } catch (error) {
-        console.error('Failed to reject request:', error);
-        toast.error('Failed to Decline', {
-          description: error instanceof Error ? error.message : 'Please try again',
-        });
-        throw error;
+      if (result.success) {
+        // Remove from pending
+        setPendingRequests((prev) =>
+          prev.filter((r) => r.requestId !== requestId)
+        );
       }
     },
-    [respondToRequest]
+    [rejectRequest]
   );
 
   // Mark notification as read
@@ -185,8 +156,8 @@ export function ConsultationProvider({ children }: ConsultationProviderProps) {
     isConnected,
     pendingRequests,
     unreadCount,
-    acceptRequest,
-    rejectRequest,
+    acceptRequest: handleAcceptRequest,
+    rejectRequest: handleRejectRequest,
     markAsRead,
     clearNotification,
     clearAllNotifications,

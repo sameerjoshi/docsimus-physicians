@@ -13,6 +13,8 @@ import {
     TypingIndicatorEvent,
     ConsultationResponsePayload,
 } from '../types/consultations';
+import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
 
 // ==========================================
 // HOOK TYPES
@@ -35,7 +37,8 @@ interface UseConsultationSocketOptions {
 interface UseConsultationSocketReturn {
     isConnected: boolean;
     socket: Socket | null;
-    respondToRequest: (requestId: string, accept: boolean) => Promise<{ success: boolean; appointmentId?: string; error?: string }>;
+    acceptRequest: (requestId: string) => Promise<{ success: boolean }>;
+    rejectRequest: (requestId: string) => Promise<{ success: boolean }>;
     joinConsultation: (consultationId: string) => Promise<{ success: boolean; consultation?: any; error?: string }>;
     leaveConsultation: (consultationId: string) => Promise<{ success: boolean; error?: string }>;
     endConsultation: (consultationId: string) => Promise<{ success: boolean; error?: string }>;
@@ -50,6 +53,7 @@ interface UseConsultationSocketReturn {
 // ==========================================
 
 export function useConsultationSocket(options: UseConsultationSocketOptions = {}): UseConsultationSocketReturn {
+    const router = useRouter();
     const socketRef = useRef<Socket | null>(null);
     const [isConnected, setIsConnected] = useState(false);
     const optionsRef = useRef(options);
@@ -191,6 +195,61 @@ export function useConsultationSocket(options: UseConsultationSocketOptions = {}
         [emitWithAck]
     );
 
+    // Accept a consultation request
+    const acceptRequest = useCallback(
+        async (requestId: string): Promise<{ success: boolean }> => {
+            try {
+                const result = await respondToRequest(requestId, true);
+
+                if (result.success && result.appointmentId) {
+                    toast.success('Consultation Accepted', {
+                        description: 'Redirecting to consultation...',
+                    });
+
+                    // Navigate to the join page
+                    router.push(`/appointment/${result.appointmentId}/join`);
+
+                    return { success: true };
+                } else {
+                    throw new Error(result.error || 'Failed to accept request');
+                }
+            } catch (error) {
+                console.error('Failed to accept request:', error);
+                toast.error('Failed to Accept', {
+                    description: error instanceof Error ? error.message : 'Please try again',
+                });
+                return { success: false };
+            }
+        },
+        [respondToRequest, router]
+    );
+
+    // Reject a consultation request
+    const rejectRequest = useCallback(
+        async (requestId: string): Promise<{ success: boolean }> => {
+            try {
+                const result = await respondToRequest(requestId, false);
+
+                if (result.success) {
+                    toast.info('Request Declined');
+                    return { success: true };
+                } else {
+                    throw new Error(result.error || 'Failed to decline request');
+                }
+            } catch (error) {
+                console.error('Failed to reject request:', error);
+                toast.error(
+                    'Failed to Decline',
+                    {
+                        description: error instanceof Error ? error.message : 'Please try again',
+                    },
+                );
+                return { success: false };
+            }
+        },
+        [respondToRequest]
+    );
+
     // Join a consultation room
     const joinConsultation = useCallback(
         async (
@@ -258,7 +317,8 @@ export function useConsultationSocket(options: UseConsultationSocketOptions = {}
     return {
         isConnected,
         socket: socketRef.current,
-        respondToRequest,
+        acceptRequest,
+        rejectRequest,
         joinConsultation,
         leaveConsultation,
         endConsultation,

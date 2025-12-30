@@ -43,8 +43,14 @@ export default function SchedulePage() {
     isRecurring: true,
   });
 
-  const { appointments, isLoading, fetchAppointments } = useAppointments();
-  const { availabilities, fetchAvailabilities, createAvailability, deleteAvailability } = useAvailabilities();
+  const { appointments, isLoading: isLoadingAppointments, fetchAppointments } = useAppointments();
+  const {
+    availabilities,
+    isLoading: isLoadingAvailabilities,
+    fetchAvailabilities,
+    createAvailability,
+    deleteAvailability
+  } = useAvailabilities();
 
   const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const daysOfWeekFull = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -218,16 +224,16 @@ export default function SchedulePage() {
     }
   };
 
-  const canJoinConsultation = () => {
-    if (!selectedAppointment) return false;
+  const canJoinConsultation = (appointment?: Appointment | null) => {
+    if (!appointment) return false;
 
     const now = Date.now();
-    const start = (new Date(selectedAppointment.scheduledAt)).getUTCMilliseconds();
-    const end = start + selectedAppointment.duration * 60 * 1000;
+    const start = (new Date(appointment.scheduledAt)).getUTCMilliseconds();
+    const end = start + appointment.duration * 60 * 1000;
 
-    return (selectedAppointment.status === "CONFIRMED" ||
-      selectedAppointment.status === "REMINDER_SENT" ||
-      selectedAppointment.status === "IN_PROGRESS") &&
+    return (appointment.status === "CONFIRMED" ||
+      appointment.status === "REMINDER_SENT" ||
+      appointment.status === "IN_PROGRESS") &&
       (now - start) > 0 && (end - now) > 0;
   }
 
@@ -296,14 +302,14 @@ export default function SchedulePage() {
                 </div>
 
                 {/* Loading State */}
-                {isLoading && (
+                {isLoadingAppointments && (
                   <div className="flex items-center justify-center py-8">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                   </div>
                 )}
 
                 {/* Calendar Grid - Desktop */}
-                {!isLoading && view === 'week' && (
+                {!isLoadingAppointments && view === 'week' && (
                   <div className="hidden md:block overflow-x-auto">
                     <div className="min-w-[600px]">
                       {/* Days Header */}
@@ -376,7 +382,7 @@ export default function SchedulePage() {
                 )}
 
                 {/* Calendar Grid - Day View Desktop */}
-                {!isLoading && view === 'day' && (
+                {!isLoadingAppointments && view === 'day' && (
                   <div className="hidden md:block">
                     <div className="space-y-1">
                       {displayHours.map((hour) => {
@@ -420,7 +426,7 @@ export default function SchedulePage() {
                 )}
 
                 {/* Calendar Grid - Mobile Week View */}
-                {!isLoading && view === 'week' && (
+                {!isLoadingAppointments && view === 'week' && (
                   <div className="md:hidden">
                     <div className="grid grid-cols-7 gap-1 mb-4">
                       {weekDates.map((date, i) => {
@@ -501,7 +507,7 @@ export default function SchedulePage() {
                 )}
 
                 {/* Calendar Grid - Mobile Day View */}
-                {!isLoading && view === 'day' && (
+                {!isLoadingAppointments && view === 'day' && (
                   <div className="md:hidden">
                     {/* Day selector strip */}
                     <div className="flex gap-1 mb-4 overflow-x-auto pb-2">
@@ -613,20 +619,40 @@ export default function SchedulePage() {
                 </div>
               </Card>
 
-              {/* Existing Time Slots */}
-              {availabilities.length > 0 && (
-                <Card className="p-4 sm:p-6">
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="font-semibold">Your Availability Slots</h3>
-                    <Button
-                      size="sm"
-                      variant="default"
-                      onClick={() => setShowAddSlotDialog(true)}
-                    >
-                      <Plus className="mr-1" />
-                      Add
-                    </Button>
+              {/* Existing Availabilities */}
+              <Card className="p-4 sm:p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="font-semibold">Your Availability Slots</h3>
+                  <Button
+                    size="sm"
+                    variant="default"
+                    onClick={() => setShowAddSlotDialog(true)}
+                  >
+                    <Plus className="mr-1" />
+                    Add
+                  </Button>
+                </div>
+
+                {/* Loading State */}
+                {isLoadingAvailabilities && (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                   </div>
+                )}
+
+                {/* Empty State */}
+                {!isLoadingAvailabilities && availabilities.length === 0 && (
+                  <div className="text-center py-8">
+                    <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-muted flex items-center justify-center">
+                      <Plus className="h-6 w-6 text-muted-foreground" />
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-1">No availability slots set</p>
+                    <p className="text-xs text-muted-foreground">Add your available time slots so patients can book appointments</p>
+                  </div>
+                )}
+
+                {/* Availabilities List */}
+                {!isLoadingAvailabilities && availabilities.length > 0 && (
                   <div className="space-y-2">
                     {availabilities.map((slot) => (
                       <div
@@ -644,15 +670,15 @@ export default function SchedulePage() {
                           variant="ghost"
                           size="sm"
                           onClick={() => deleteAvailability(slot.id)}
-                          disabled={isLoading}
+                          disabled={isLoadingAvailabilities}
                         >
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                       </div>
                     ))}
                   </div>
-                </Card>
-              )}
+                )}
+              </Card>
             </motion.div>
           </div>
         </motion.div>
@@ -718,8 +744,8 @@ export default function SchedulePage() {
             <Button variant="outline" onClick={() => setShowAddSlotDialog(false)}>
               Cancel
             </Button>
-            <Button onClick={handleAddTimeSlot} disabled={isLoading}>
-              {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+            <Button onClick={handleAddTimeSlot} disabled={isLoadingAvailabilities}>
+              {isLoadingAvailabilities ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               Add Availability
             </Button>
           </DialogFooter>
@@ -771,7 +797,7 @@ export default function SchedulePage() {
             </div>
           )}
           <DialogFooter className="flex-col sm:flex-row gap-2">
-            {canJoinConsultation() && (
+            {canJoinConsultation(selectedAppointment) && (
               <>
                 <Button>
                   <Video className="h-4 w-4 mr-2" />

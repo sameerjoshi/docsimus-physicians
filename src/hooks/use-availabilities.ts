@@ -10,6 +10,8 @@ import { toast } from "sonner";
 
 interface UseAvailabilitiesState {
     availabilities: Availability[];
+    isLoading: boolean;
+    error: string | null;
 }
 
 interface UseAvailabilitiesAction {
@@ -21,7 +23,7 @@ interface UseAvailabilitiesAction {
 }
 
 export function useAvailabilities(): UseAvailabilitiesState & UseAvailabilitiesAction {
-    const [state, setState] = useState<UseAvailabilitiesState>({ availabilities: [] });
+    const [state, setState] = useState<UseAvailabilitiesState>({ availabilities: [], isLoading: false, error: null });
 
     const fetchAvailabilities = useCallback(async (dayOfWeek?: number) => {
         try {

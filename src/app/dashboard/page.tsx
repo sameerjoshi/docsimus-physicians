@@ -18,25 +18,34 @@ import {
   CheckCircle,
   TrendingUp,
   AlertCircle,
+  Loader2,
+  Zap,
+  MessageSquare,
+  XCircle,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { staggerContainer, staggerItem } from "@/src/lib/animations";
 import { useProfile } from "@/src/hooks/use-profile";
 import { usePatientsStats } from "@/src/hooks/use-patients";
+import { useConsultations } from "@/src/hooks/use-consultations";
+import { useConsultationSocket } from "@/src/hooks/use-consultation-socket";
+import { Appointment } from "@/src/types/appointments";
 
 export default function DashboardPage() {
   const router = useRouter();
   const [monthlyEarnings, setMonthlyEarnings] = useState(0);
 
-  const { profile, fetchProfile, isLoading: profileLoading } = useProfile();
+  const { profile, fetchProfile, isLoading: isLoadingProfile } = useProfile();
   const {
     todayAppointments,
     upcomingAppointmentsCount,
     fetchTodayAppointments,
     fetchUpcomingAppointmentsCount,
-    isLoading: appointmentsLoading,
+    isLoading: isLoadingAppointments,
   } = useAppointments();
-  const { data: patientStats, isLoading: statsLoading } = usePatientsStats();
+  const { pendingRequests, fetchPendingRequests, isLoading: isLoadingConsultations } = useConsultations();
+  const { acceptRequest, rejectRequest } = useConsultationSocket();
+  const { data: patientStats, isLoading: isLoadingStats } = usePatientsStats();
 
   useEffect(() => {
     async function loadDashboardData() {
@@ -44,6 +53,7 @@ export default function DashboardPage() {
         await fetchProfile();
         await fetchUpcomingAppointmentsCount();
         await fetchTodayAppointments();
+        await fetchPendingRequests();
 
         // Stats - totalPatients and monthlyEarnings would come from a separate API
         // appointmentsToday will be derived from todayAppointments
@@ -56,7 +66,7 @@ export default function DashboardPage() {
     loadDashboardData();
   }, []);
 
-  if (profileLoading) {
+  if (isLoadingProfile) {
     return (
       <>
         <AppHeader />
@@ -72,20 +82,33 @@ export default function DashboardPage() {
   const isRejected =
     profile?.status === "REJECTED" || profile?.status === "rejected";
 
+  const canJoinConsultation = (appointment?: Appointment | null) => {
+    if (!appointment) return false;
+
+    const now = Date.now();
+    const start = (new Date(appointment.scheduledAt)).getUTCMilliseconds();
+    const end = start + appointment.duration * 60 * 1000;
+
+    return (appointment.status === "CONFIRMED" ||
+      appointment.status === "REMINDER_SENT" ||
+      appointment.status === "IN_PROGRESS") &&
+      (now - start) > 0 && (end - now) > 0;
+  }
+
   const statCards = [
     {
       title: "Total Patients",
-      value: statsLoading ? "..." : patientStats?.totalPatients || 0,
+      value: isLoadingStats ? "..." : patientStats?.totalPatients || 0,
       icon: Users,
       color: "text-blue-600",
       bgColor: "bg-blue-500/10",
-      change: statsLoading
+      change: isLoadingStats
         ? "..."
         : `${patientStats?.newPatientsThisMonth || 0} new this month`,
     },
     {
       title: "Appointments Today",
-      value: todayAppointments.length,
+      value: isLoadingAppointments ? "..." : todayAppointments.length,
       icon: Calendar,
       color: "text-green-600",
       bgColor: "bg-green-500/10",
@@ -244,12 +267,23 @@ export default function DashboardPage() {
                   </div>
 
                   <div className="space-y-3 sm:space-y-4">
-                    {todayAppointments.length === 0 ? (
+                    {/* Loading state */}
+                    {isLoadingAppointments && (
+                      <div className="text-center py-8 sm:py-12 text-muted-foreground">
+                        <Loader2 className="h-12 w-12 mx-auto mb-3 opacity-30 animate-spin" />
+                        <p>Loading Appointments...</p>
+                      </div>
+                    )}
+
+                    {/* Empty state */}
+                    {!isLoadingAppointments && todayAppointments.length === 0 && (
                       <div className="text-center py-8 sm:py-12 text-muted-foreground">
                         <Clock className="h-12 w-12 mx-auto mb-3 opacity-30" />
                         <p>No appointments scheduled for today</p>
                       </div>
-                    ) : (
+                    )}
+
+                    {!isLoadingAppointments && todayAppointments.length > 0 && (
                       todayAppointments.map((appointment) => (
                         <div
                           key={appointment.id}
@@ -288,16 +322,11 @@ export default function DashboardPage() {
                                 {appointment.status}
                               </span>
                             )}
-                            {(appointment.status === "CONFIRMED" ||
-                              appointment.status === "IN_PROGRESS") && (
+                            {canJoinConsultation(appointment) && (
                               <Button
                                 size="sm"
                                 className="flex-shrink-0"
-                                onClick={() =>
-                                  router.push(
-                                    `/appointment/${appointment.id}/join`
-                                  )
-                                }
+                                onClick={() => router.push(`/appointment/${appointment.id}/join`)}
                               >
                                 Join Call
                               </Button>
@@ -310,25 +339,98 @@ export default function DashboardPage() {
                 </Card>
               </motion.div>
 
-              {/* Performance Card */}
-              <motion.div variants={staggerItem}>
-                <Card className="p-4 sm:p-6 bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
-                  <div className="flex items-center gap-3 mb-3">
-                    <TrendingUp className="h-5 w-5 text-primary" />
-                    <h3 className="font-semibold">Performance</h3>
-                  </div>
-                  <p className="text-2xl sm:text-3xl font-bold text-foreground mb-1">
-                    98%
-                  </p>
-                  <p className="text-xs sm:text-sm text-muted-foreground">
-                    Patient satisfaction rate
-                  </p>
-                </Card>
-
+              {/* Right Column - Performance & Requests */}
+              <motion.div variants={staggerItem} className="space-y-6">
                 {/* Availability Toggle */}
-                <div className="mt-6">
-                  <AvailabilityToggle />
-                </div>
+                <AvailabilityToggle />
+
+                {/* Pending Instant Consultation Requests */}
+                <Card className="p-4 sm:p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-semibold flex items-center gap-2">
+                      <Zap className="h-5 w-5 text-amber-500" />
+                      Pending Instant Requests
+                      {pendingRequests.length > 0 && (
+                        <span className="ml-1 px-2 py-0.5 bg-amber-500 text-white text-xs rounded-full">
+                          {pendingRequests.length}
+                        </span>
+                      )}
+                    </h3>
+                  </div>
+
+                  {/* Loading State */}
+                  {isLoadingConsultations && (
+                    <div className="text-center py-6 text-muted-foreground">
+                      <Loader2 className="h-8 w-8 mx-auto mb-2 opacity-30 animate-spin" />
+                      <p className="text-sm">Loading requests...</p>
+                    </div>
+                  )}
+
+                  {/* Empty State */}
+                  {!isLoadingConsultations && pendingRequests.length === 0 && (
+                    <div className="text-center py-6 text-muted-foreground">
+                      <Zap className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                      <p className="text-sm">No pending requests</p>
+                    </div>
+                  )}
+
+                  {/* Requests List */}
+                  {!isLoadingConsultations && pendingRequests.length > 0 && (
+                    <div className="space-y-3">
+                      {pendingRequests.slice(0, 3).map((request) => (
+                        <div
+                          key={request.id}
+                          className="p-3 border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 rounded-lg"
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center flex-shrink-0">
+                              <Users className="h-4 w-4 text-amber-600" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-sm truncate">
+                                {request.patient?.name || "Patient"}
+                              </p>
+                              {request.reason && (
+                                <p className="text-xs text-muted-foreground truncate flex items-center gap-1 mt-0.5">
+                                  <MessageSquare className="h-3 w-3" />
+                                  {request.reason}
+                                </p>
+                              )}
+                              <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                                Expires {new Date(request.expiresAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex gap-2 mt-2">
+                            <Button
+                              size="sm"
+                              variant="default"
+                              className="flex-1 h-8 text-xs"
+                              onClick={() => acceptRequest(request.id)}
+                            >
+                              <CheckCircle className="h-3 w-3 mr-1" />
+                              Accept
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              className="flex-1 h-8 text-xs"
+                              onClick={() => rejectRequest(request.id)}
+                            >
+                              <XCircle className="h-3 w-3 mr-1" />
+                              Reject
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                      {pendingRequests.length > 3 && (
+                        <p className="text-xs text-center text-muted-foreground">
+                          +{pendingRequests.length - 3} more requests
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </Card>
               </motion.div>
             </div>
           </motion.div>

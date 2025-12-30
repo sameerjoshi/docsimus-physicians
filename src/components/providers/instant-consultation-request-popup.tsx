@@ -47,70 +47,39 @@ export function InstantConsultationRequestPopupProvider() {
     });
   }, []);
 
-  const { respondToRequest } = useConsultationSocket({
+  const { acceptRequest, rejectRequest } = useConsultationSocket({
     onConsultationRequest: handleConsultationRequest,
     onRequestCancelled: handleRequestCancelled,
   });
 
   // Accept a consultation request
-  const acceptRequest = useCallback(
+  const handleAcceptRequest = useCallback(
     async (requestId: string): Promise<void> => {
       setIsLoading(true);
-      try {
-        const result = await respondToRequest(requestId, true);
+      const result = await acceptRequest(requestId);
 
-        if (result.success && result.appointmentId) {
-          // Hide the popup
-          setData(null);
-
-          toast.success('Consultation Accepted', {
-            description: 'Redirecting to consultation...',
-          });
-
-          // Navigate to the join page
-          router.push(`/appointment/${result.appointmentId}/join`);
-        } else {
-          throw new Error(result.error || 'Failed to accept request');
-        }
-      } catch (error) {
-        console.error('Failed to accept request:', error);
-        toast.error('Failed to Accept', {
-          description: error instanceof Error ? error.message : 'Please try again',
-        });
-        throw error;
-      } finally {
-        setIsLoading(false);
+      if (result.success) {
+        // Hide the popup
+        setData(null);
       }
+      setIsLoading(false);
     },
-    [respondToRequest, router]
+    [acceptRequest, router]
   );
 
   // Reject a consultation request
-  const rejectRequest = useCallback(
+  const handleRejectRequest = useCallback(
     async (requestId: string) => {
       setIsLoading(true);
-      try {
-        const result = await respondToRequest(requestId, false);
+      const result = await rejectRequest(requestId);
 
-        if (result.success) {
-          // Hide the popup
-          setData(null);
-
-          toast.info('Request Declined');
-        } else {
-          throw new Error(result.error || 'Failed to decline request');
-        }
-      } catch (error) {
-        console.error('Failed to reject request:', error);
-        toast.error('Failed to Decline', {
-          description: error instanceof Error ? error.message : 'Please try again',
-        });
-        throw error;
-      } finally {
-        setIsLoading(false);
+      if (result.success) {
+        // Hide the popup
+        setData(null);
       }
+      setIsLoading(false);
     },
-    [respondToRequest]
+    [rejectRequest]
   );
 
   // Handle close/dismiss
@@ -140,8 +109,8 @@ export function InstantConsultationRequestPopupProvider() {
       isOpen={!!data}
       onClose={handleClose}
       data={data}
-      onAccept={() => acceptRequest(data.requestId)}
-      onReject={() => rejectRequest(data.requestId)}
+      onAccept={() => handleAcceptRequest(data.requestId)}
+      onReject={() => handleRejectRequest(data.requestId)}
       isLoading={isLoading}
     />
   );
