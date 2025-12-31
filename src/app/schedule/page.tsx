@@ -14,12 +14,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/src/components/ui/dialog';
-import { ChevronLeft, ChevronRight, Plus, Video, CheckCircle, X, Loader2, Trash2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Video, CheckCircle, X, Loader2, Trash2, Pencil, AlertTriangle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { staggerContainer, staggerItem } from '@/src/lib/animations';
 import { useAppointments } from '@/src/hooks/use-appointments';
 import { Appointment } from '@/src/types/appointments';
-import { CreateAvailabilityPayload } from '@/src/types/availabilities';
+import { CreateAvailabilityPayload, UpdateAvailabilityPayload, Availability } from '@/src/types/availabilities';
 import { useAvailabilities } from '@/src/hooks/use-availabilities';
 import { Input } from '@/src/components/ui/input';
 import { Checkbox } from '@/src/components/ui/checkbox';
@@ -34,6 +34,15 @@ export default function SchedulePage() {
   const [showAddSlotDialog, setShowAddSlotDialog] = useState(false);
   const [showAppointmentDialog, setShowAppointmentDialog] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
+  const [showEditSlotDialog, setShowEditSlotDialog] = useState(false);
+  const [showDeleteConfirmDialog, setShowDeleteConfirmDialog] = useState(false);
+  const [selectedAvailability, setSelectedAvailability] = useState<Availability | null>(null);
+
+  // Edit availability form
+  const [editSlot, setEditSlot] = useState({
+    startTime: '',
+    endTime: '',
+  });
 
   // New availability form
   const [newSlot, setNewSlot] = useState({
@@ -49,6 +58,7 @@ export default function SchedulePage() {
     isLoading: isLoadingAvailabilities,
     fetchAvailabilities,
     createAvailability,
+    updateAvailability,
     deleteAvailability
   } = useAvailabilities();
 
@@ -654,26 +664,46 @@ export default function SchedulePage() {
                 {/* Availabilities List */}
                 {!isLoadingAvailabilities && availabilities.length > 0 && (
                   <div className="space-y-2">
-                    {availabilities.map((slot) => (
+                    {availabilities.map((availability) => (
                       <div
-                        key={slot.id}
+                        key={availability.id}
                         className="flex items-center justify-between p-3 border rounded-lg"
                       >
                         <div>
-                          <p className="font-medium">{!slot.isRecurring && `${new Date(slot.specificDate!).toLocaleDateString()} - `}{daysOfWeekFull[slot.dayOfWeek]}</p>
+                          <p className="font-medium">{!availability.isRecurring && `${new Date(availability.specificDate!).toLocaleDateString()} - `}{daysOfWeekFull[availability.dayOfWeek]}</p>
                           <p className="text-sm text-muted-foreground">
-                            {slot.startTime} - {slot.endTime}
-                            {slot.isRecurring && <span className="ml-2 text-xs">(Weekly)</span>}
+                            {availability.startTime} - {availability.endTime}
+                            {availability.isRecurring && <span className="ml-2 text-xs">(Weekly)</span>}
                           </p>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => deleteAvailability(slot.id)}
-                          disabled={isLoadingAvailabilities}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
+                        <div className="flex gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedAvailability(availability);
+                              setEditSlot({
+                                startTime: availability.startTime,
+                                endTime: availability.endTime,
+                              });
+                              setShowEditSlotDialog(true);
+                            }}
+                            disabled={isLoadingAvailabilities}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedAvailability(availability);
+                              setShowDeleteConfirmDialog(true);
+                            }}
+                            disabled={isLoadingAvailabilities}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -807,6 +837,150 @@ export default function SchedulePage() {
             )}
             <Button variant="outline" onClick={() => setShowAppointmentDialog(false)}>
               Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Availability Dialog */}
+      <Dialog open={showEditSlotDialog} onOpenChange={setShowEditSlotDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Availability</DialogTitle>
+            <DialogDescription>
+              Update the time range for this availability slot.
+            </DialogDescription>
+          </DialogHeader>
+          {selectedAvailability && (
+            <div className="space-y-4 py-4">
+              <div className="p-3 bg-muted rounded-lg">
+                <p className="font-medium">
+                  {!selectedAvailability.isRecurring && `${new Date(selectedAvailability.specificDate!).toLocaleDateString()} - `}
+                  {daysOfWeekFull[selectedAvailability.dayOfWeek]}
+                </p>
+                {selectedAvailability.isRecurring && (
+                  <p className="text-xs text-muted-foreground">Repeats weekly</p>
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Start Time</Label>
+                  <Input
+                    type="time"
+                    required
+                    value={editSlot.startTime}
+                    onChange={(e) => setEditSlot({ ...editSlot, startTime: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>End Time</Label>
+                  <Input
+                    type="time"
+                    required
+                    value={editSlot.endTime}
+                    onChange={(e) => setEditSlot({ ...editSlot, endTime: e.target.value })}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditSlotDialog(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={async () => {
+                if (!selectedAvailability) return;
+
+                // Validate start time
+                if (!editSlot.startTime) {
+                  toast.error('Please select a start time');
+                  return;
+                }
+
+                // Validate end time
+                if (!editSlot.endTime) {
+                  toast.error('Please select an end time');
+                  return;
+                }
+
+                // Validate that end time is after start time
+                if (editSlot.startTime >= editSlot.endTime) {
+                  toast.error('End time must be after start time');
+                  return;
+                }
+
+                const payload: UpdateAvailabilityPayload = {
+                  startTime: editSlot.startTime,
+                  endTime: editSlot.endTime,
+                };
+
+                const success = await updateAvailability(selectedAvailability.id, payload);
+                if (success) {
+                  setShowEditSlotDialog(false);
+                  setSelectedAvailability(null);
+                }
+              }}
+              disabled={isLoadingAvailabilities}
+            >
+              {isLoadingAvailabilities ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={showDeleteConfirmDialog} onOpenChange={setShowDeleteConfirmDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Availability</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this availability slot?
+            </DialogDescription>
+          </DialogHeader>
+          {selectedAvailability && (
+            <div className="space-y-4 py-4">
+              <div className="p-3 border rounded-lg">
+                <p className="font-medium">
+                  {!selectedAvailability.isRecurring && `${new Date(selectedAvailability.specificDate!).toLocaleDateString()} - `}
+                  {daysOfWeekFull[selectedAvailability.dayOfWeek]}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {selectedAvailability.startTime} - {selectedAvailability.endTime}
+                  {selectedAvailability.isRecurring && <span className="ml-2 text-xs">(Weekly)</span>}
+                </p>
+              </div>
+              <div className="flex items-start gap-3 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+                <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+                <div className="text-sm">
+                  <p className="font-medium text-amber-500">Important</p>
+                  <p className="text-muted-foreground">
+                    Deleting this availability will only prevent new appointments from being booked.
+                    Existing appointments that have already been scheduled will not be cancelled automatically.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDeleteConfirmDialog(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={async () => {
+                if (!selectedAvailability) return;
+                const success = await deleteAvailability(selectedAvailability.id);
+                if (success) {
+                  setShowDeleteConfirmDialog(false);
+                  setSelectedAvailability(null);
+                }
+              }}
+              disabled={isLoadingAvailabilities}
+            >
+              {isLoadingAvailabilities ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Delete Availability
             </Button>
           </DialogFooter>
         </DialogContent>
