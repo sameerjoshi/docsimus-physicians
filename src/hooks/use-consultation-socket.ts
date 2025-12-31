@@ -304,15 +304,14 @@ export function useConsultationSocket(options: UseConsultationSocketOptions = {}
 
     // Auto-connect on mount if token exists
     useEffect(() => {
-        const token = getToken();
-        if (token) {
-            connect();
-        }
+        if (isConnected) return;
+
+        connect();
 
         return () => {
             disconnect();
         };
-    }, [connect, disconnect, getToken]);
+    }, [connect, disconnect]);
 
     return {
         isConnected,

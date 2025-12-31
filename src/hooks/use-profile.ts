@@ -19,7 +19,7 @@ interface UseProfileState {
     profile: DoctorProfile | null;
     documents: DoctorDocument[];
     applicationStatus: ApplicationStatus | null;
-    availability: boolean;
+    isAvailable: boolean;
     isLoading: boolean;
     isUpdating: boolean;
     isUploading: boolean;
@@ -31,7 +31,7 @@ interface UseProfileActions {
     updateProfile: (data: UpdateDoctorProfileData) => Promise<boolean>;
     updateProfileFromState: (state: Partial<DoctorOnboardingState>) => Promise<boolean>;
     fetchAvailability: () => Promise<void>;
-    toggleAvailability: (available: boolean) => Promise<boolean>;
+    setAvailability: (available: boolean) => Promise<boolean>;
     submitApplication: () => Promise<boolean>;
     fetchApplicationStatus: () => Promise<void>;
     uploadDocument: (file: File, type: string) => Promise<DoctorDocument | null>;
@@ -50,7 +50,7 @@ export function useProfile(): UseProfileState & UseProfileActions {
         profile: null,
         documents: [],
         applicationStatus: null,
-        availability: false,
+        isAvailable: false,
         isLoading: false,
         isUpdating: false,
         isUploading: false,
@@ -68,7 +68,7 @@ export function useProfile(): UseProfileState & UseProfileActions {
             setState(prev => ({
                 ...prev,
                 profile,
-                availability: profile.availableNow,
+                isAvailable: profile.availableNow,
                 isLoading: false,
             }));
             return profile;
@@ -129,7 +129,7 @@ export function useProfile(): UseProfileState & UseProfileActions {
             const availability = await profileService.getAvailability();
             setState(prev => ({
                 ...prev,
-                availability,
+                isAvailable: availability,
                 isLoading: false,
             }));
         } catch (err: any) {
@@ -144,7 +144,7 @@ export function useProfile(): UseProfileState & UseProfileActions {
             const result = await profileService.toggleAvailability(available);
             setState(prev => ({
                 ...prev,
-                availability: result.availableNow,
+                isAvailable: result.availableNow,
                 profile: prev.profile ? { ...prev.profile, availableNow: result.availableNow } : null,
                 isUpdating: false,
             }));
@@ -269,7 +269,7 @@ export function useProfile(): UseProfileState & UseProfileActions {
             profile: null,
             documents: [],
             applicationStatus: null,
-            availability: false,
+            isAvailable: false,
             isLoading: false,
             isUpdating: false,
             isUploading: false,
@@ -283,7 +283,7 @@ export function useProfile(): UseProfileState & UseProfileActions {
         updateProfile,
         updateProfileFromState,
         fetchAvailability,
-        toggleAvailability,
+        setAvailability: toggleAvailability,
         submitApplication,
         fetchApplicationStatus,
         uploadDocument,
