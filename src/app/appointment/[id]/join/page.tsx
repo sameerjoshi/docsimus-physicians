@@ -15,6 +15,7 @@ import { Button } from '@/src/components/ui/button';
 import { appointmentsService } from '@/src/services/appointments.service';
 import { consultationsService } from '@/src/services/consultations.service';
 import { Appointment } from '@/src/types/appointments';
+import { RouteGuard } from '@/src/components/RouteGuard';
 
 export default function JoinConsultationPage() {
   const router = useRouter();
@@ -76,7 +77,7 @@ export default function JoinConsultationPage() {
   // Loading state
   if (isLoading) {
     return (
-      <>
+      <RouteGuard>
         <AppHeader />
         <div className="min-h-screen bg-background flex items-center justify-center">
           <div className="text-center">
@@ -84,14 +85,14 @@ export default function JoinConsultationPage() {
             <p className="text-muted-foreground">Loading appointment...</p>
           </div>
         </div>
-      </>
+      </RouteGuard>
     );
   }
 
   // Error state
   if (error || !appointment) {
     return (
-      <>
+      <RouteGuard>
         <AppHeader />
         <div className="min-h-screen bg-background flex items-center justify-center p-4">
           <Card className="max-w-md p-8 text-center">
@@ -104,7 +105,7 @@ export default function JoinConsultationPage() {
             </Button>
           </Card>
         </div>
-      </>
+      </RouteGuard>
     );
   }
 
@@ -113,7 +114,7 @@ export default function JoinConsultationPage() {
 
   if (!canJoin) {
     return (
-      <>
+      <RouteGuard>
         <AppHeader />
         <div className="min-h-screen bg-background flex items-center justify-center p-4">
           <Card className="max-w-md p-8 text-center">
@@ -128,7 +129,7 @@ export default function JoinConsultationPage() {
             </Button>
           </Card>
         </div>
-      </>
+      </RouteGuard>
     );
   }
 
@@ -145,7 +146,7 @@ export default function JoinConsultationPage() {
   });
 
   return (
-    <>
+    <RouteGuard>
       <AppHeader />
       <div className="min-h-screen bg-background">
         <div className="container mx-auto px-4 py-8 max-w-2xl">
@@ -283,6 +284,6 @@ export default function JoinConsultationPage() {
           </motion.div>
         </div>
       </div>
-    </>
+    </RouteGuard>
   );
 }

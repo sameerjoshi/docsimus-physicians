@@ -24,6 +24,7 @@ import { useAvailabilities } from '@/src/hooks/use-availabilities';
 import { Input } from '@/src/components/ui/input';
 import { Checkbox } from '@/src/components/ui/checkbox';
 import { toast } from 'sonner';
+import { RouteGuard } from '@/src/components/RouteGuard';
 
 export default function SchedulePage() {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -256,7 +257,7 @@ export default function SchedulePage() {
   };
 
   return (
-    <>
+    <RouteGuard>
       <AppHeader />
       <div className="min-h-screen bg-background">
         <motion.div
@@ -985,6 +986,6 @@ export default function SchedulePage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </>
+    </RouteGuard>
   );
 }

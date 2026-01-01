@@ -1,23 +1,22 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { ThemeToggle } from "@/src/components/theme-toggle";
 import { Button } from "@/src/components/ui/button";
 import { LogOut, Menu, X } from "lucide-react";
-import { authService } from "@/src/services/auth.service";
 import { useState } from "react";
 import Image from "next/image";
 import { NotificationBell } from "@/src/components/notifications/NotificationBell";
+import { useAuth } from "@/src/hooks/use-auth";
 
 export function AppHeader() {
   const pathname = usePathname();
-  const router = useRouter();
+  const { logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleLogout = () => {
-    authService.logout();
-    router.push("/login");
+    logout();
   };
 
   const navItems = [
@@ -61,11 +60,10 @@ export function AppHeader() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    isActive
-                      ? "bg-primary/10 text-primary"
-                      : "text-muted-foreground hover:text-foreground hover:bg-accent"
-                  }`}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${isActive
+                    ? "bg-primary/10 text-primary"
+                    : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                    }`}
                 >
                   {item.label}
                 </Link>
@@ -116,11 +114,10 @@ export function AppHeader() {
                     key={item.href}
                     href={item.href}
                     onClick={closeMobileMenu}
-                    className={`px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
-                      isActive
-                        ? "bg-primary/10 text-primary"
-                        : "text-muted-foreground hover:text-foreground hover:bg-accent"
-                    }`}
+                    className={`px-4 py-3 rounded-lg text-sm font-medium transition-colors ${isActive
+                      ? "bg-primary/10 text-primary"
+                      : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                      }`}
                   >
                     {item.label}
                   </Link>

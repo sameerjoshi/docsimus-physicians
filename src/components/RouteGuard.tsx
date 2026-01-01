@@ -1,135 +1,158 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { authService } from "@/src/services/auth.service";
+import { useEffect, useState, useRef } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useAuth } from "../hooks/use-auth";
+import { useProfile } from "../hooks/use-profile";
+
+/**
+ * Defines the level of protection required.
+ * Each level encapsulates those above it.
+ */
+export enum GuardLevel {
+    PUBLIC,
+    AUTHENTICATED,
+    EMAIL_VERIFIED,
+    ONBOARDED,
+}
+
+export enum Role {
+    USER = "USER",
+    DOCTOR = "DOCTOR",
+    REVIEWER = "REVIEWER",
+    ADMIN = "ADMIN",
+}
 
 interface RouteGuardProps {
     children: React.ReactNode;
-    requireAuth?: boolean;
-    requireVerified?: boolean;
-    requireOnboarding?: boolean;
-    requireRole?: 'DOCTOR' | 'ADMIN' | 'USER';
+    level?: GuardLevel;
+    role?: Role;
 }
 
+/**
+ * Guard that authorises access based on provided level and role.
+ */
 export function RouteGuard({
     children,
-    requireAuth = false,
-    requireVerified = false,
-    requireOnboarding = false,
-    requireRole,
+    level = GuardLevel.ONBOARDED,
+    role = Role.DOCTOR,
 }: RouteGuardProps) {
-    const router = useRouter();
     const [isChecking, setIsChecking] = useState(true);
+    const [hasFetchedStatus, setHasFetchedStatus] = useState(false);
 
+    const router = useRouter();
+    const pathname = usePathname();
+    const { isAuthenticated, user, isLoading: isAuthLoading } = useAuth();
+    const { applicationStatus, fetchApplicationStatus, isLoading: isProfileLoading } = useProfile();
+
+    // Fetch application status once when needed
     useEffect(() => {
-        const checkAccess = async () => {
-            // Wait for client-side hydration
-            await new Promise(resolve => setTimeout(resolve, 0));
+        if (
+            !isAuthLoading &&
+            isAuthenticated &&
+            user?.role === Role.DOCTOR &&
+            level === GuardLevel.ONBOARDED &&
+            !hasFetchedStatus
+        ) {
+            fetchApplicationStatus();
+            setHasFetchedStatus(true);
+        }
+    }, [isAuthLoading, isAuthenticated, user?.role, level, hasFetchedStatus, fetchApplicationStatus]);
 
-            // Check authentication (this now also validates token expiration)
-            const isAuthenticated = authService.isAuthenticated();
+    // Main access check effect
+    useEffect(() => {
+        if (level === GuardLevel.PUBLIC) {
+            setIsChecking(false);
+            return;
+        }
 
-            console.log("RouteGuard check:", { isAuthenticated, requireAuth, requireRole });
+        // Wait for auth to finish loading
+        if (isAuthLoading) {
+            return;
+        }
 
-            if (requireAuth && !isAuthenticated) {
-                console.log("Not authenticated or token expired, redirecting to login");
-                router.push("/login");
+        // Check authentication
+        if (!isAuthenticated) {
+            console.log("Not authenticated, redirecting to login");
+            router.push("/login");
+            return;
+        }
+
+        // Check user
+        if (!user) {
+            console.log("No user data, redirecting to login");
+            router.push("/login");
+            return;
+        }
+
+        if (level === GuardLevel.AUTHENTICATED) {
+            setIsChecking(false);
+            return;
+        }
+
+        // Check email verification
+        if (!user.isVerified) {
+            console.log("Email not verified, redirecting");
+            router.push("/verify-email");
+            return;
+        }
+
+        if (level === GuardLevel.EMAIL_VERIFIED) {
+            setIsChecking(false);
+            return;
+        }
+
+        // Check role
+        if (user.role !== role) {
+            console.log(`Role mismatch: expected ${role}, got ${user.role}`);
+            router.push("/login?error=unauthorized");
+            return;
+        }
+
+        // Check onboarding status if user is a Doctor
+        if (role === Role.DOCTOR && level === GuardLevel.ONBOARDED) {
+            // Wait for application status to be fetched
+            if (isProfileLoading || !hasFetchedStatus) {
                 return;
             }
 
-            if (!isAuthenticated) {
-                setIsChecking(false);
-                return;
-            }
-
-            // Get user data
-            const user = authService.getUser();
-            console.log("User data:", user);
-
-            if (!user) {
-                console.log("No user data, redirecting to login");
-                router.push("/login");
-                return;
-            }
-
-            // Check email verification
-            if (requireVerified && !user.isVerified) {
-                console.log("Email not verified, redirecting");
-                router.push("/verify-email");
-                return;
-            }
-
-            // Check user role
-            if (requireRole && user.role !== requireRole) {
-                console.log(`Role mismatch: expected ${requireRole}, got ${user.role}`);
-                router.push("/login?error=unauthorized");
-                return;
-            }
-
-            // Check onboarding completion (if doctor role)
-            if (requireOnboarding && user.role === "DOCTOR") {
-                try {
-                    const response = await fetch("http://localhost:3001/doctors/profile", {
-                        headers: {
-                            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-                        },
-                    });
-
-                    // Handle email not verified error from backend
-                    if (response.status === 400) {
-                        const errorData = await response.json();
-                        if (errorData.message?.includes("verify your email")) {
-                            router.push("/verify-email");
-                            return;
-                        }
-                    }
-
-                    if (response.ok) {
-                        const profile = await response.json();
-
-                        // Status-based routing
-                        const currentPath = window.location.pathname;
-
-                        if (profile.status === "DRAFT") {
-                            // DRAFT: Should be on registration page
-                            if (currentPath !== "/registration") {
-                                router.push("/registration");
-                                return;
-                            }
-                        } else if (profile.status === "PENDING") {
-                            // PENDING: Should be on application-status page
-                            if (currentPath !== "/application-status") {
-                                router.push("/application-status");
-                                return;
-                            }
-                        } else if (profile.status === "REJECTED") {
-                            // REJECTED: Can resubmit, redirect to registration
-                            if (currentPath !== "/registration") {
-                                router.push("/registration?status=rejected");
-                                return;
-                            }
-                        } else if (profile.status === "VERIFIED") {
-                            // VERIFIED: Redirect to dashboard
-                            if (currentPath === "/registration" || currentPath === "/application-status") {
-                                router.push("/dashboard");
-                                return;
-                            }
-                        }
-                    }
-                } catch (error) {
-                    console.error("Failed to check onboarding status:", error);
-                    // Don't block access on network errors, user will see error on page
+            if (applicationStatus?.status === "DRAFT") {
+                // DRAFT: Should be on registration page
+                if (pathname !== "/registration" && pathname !== "/registration/review") {
+                    router.push("/registration");
+                    return;
+                }
+            } else if (applicationStatus?.status === "PENDING") {
+                // PENDING: Should be on application-status page
+                if (pathname !== "/application-status") {
+                    router.push("/application-status");
+                    return;
+                }
+            } else if (applicationStatus?.status === "REJECTED") {
+                // REJECTED: Can resubmit, redirect to registration
+                if (pathname !== "/registration") {
+                    router.push("/registration?status=rejected");
+                    return;
+                }
+            } else if (applicationStatus?.status === "VERIFIED") {
+                // VERIFIED: Redirect away from onboarding pages
+                if (pathname === "/registration" || pathname === "/application-status") {
+                    router.push("/dashboard");
+                    return;
                 }
             }
+        }
 
-            setIsChecking(false);
-        };
+        setIsChecking(false);
+    }, [isAuthLoading, isAuthenticated, user, level, role, pathname, router, applicationStatus, isProfileLoading, hasFetchedStatus]);
 
-        checkAccess();
-    }, [requireAuth, requireVerified, requireOnboarding, requireRole, router]);
+    // Reset when pathname changes
+    useEffect(() => {
+        setIsChecking(true);
+        setHasFetchedStatus(false);
+    }, [pathname]);
 
-    if (isChecking && requireAuth) {
+    if (isChecking) {
         return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
     }
 

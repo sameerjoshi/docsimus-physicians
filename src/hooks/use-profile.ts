@@ -67,7 +67,7 @@ export function useProfile(): UseProfileState & UseProfileActions {
             const profile = await profileService.getProfile();
             setState(prev => ({
                 ...prev,
-                profile,
+                profile: profile,
                 isAvailable: profile.availableNow,
                 isLoading: false,
             }));

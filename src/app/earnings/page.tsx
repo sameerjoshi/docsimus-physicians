@@ -6,11 +6,11 @@ import { Card } from '@/src/components/ui/card';
 import { Button } from '@/src/components/ui/button';
 import { Badge } from '@/src/components/ui/badge';
 import {
-  DollarSign, TrendingUp, Calendar, Download,
-  ArrowUpRight, ArrowDownRight, CreditCard, Wallet
+  DollarSign, TrendingUp, Calendar, Download, CreditCard, Wallet
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { staggerContainer, staggerItem } from '@/src/lib/animations';
+import { RouteGuard } from '@/src/components/RouteGuard';
 
 export default function EarningsPage() {
   const [selectedPeriod, setSelectedPeriod] = useState<'week' | 'month' | 'year'>('month');
@@ -43,7 +43,7 @@ export default function EarningsPage() {
   const maxEarnings = Math.max(...monthlyData.map(d => d.earnings));
 
   return (
-    <>
+    <RouteGuard>
       <AppHeader />
       <div className="min-h-screen bg-background">
         <motion.div
@@ -266,6 +266,6 @@ export default function EarningsPage() {
           </motion.div>
         </motion.div>
       </div>
-    </>
+    </RouteGuard>
   );
 }

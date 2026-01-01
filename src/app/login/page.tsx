@@ -5,18 +5,20 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input } from "@/src/components/ui";
 import { Mail, Lock, ArrowRight } from "lucide-react";
-import { authService } from "@/src/services/auth.service";
+import { useAuth } from "@/src/hooks/use-auth";
 import { fadeInUp } from "@/src/lib/animations";
 import { motion } from "framer-motion";
 import { useProfile } from "@/src/hooks/use-profile";
 
 export default function LoginPage() {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
+
+  const router = useRouter();
+  const { login, user, isLoading: loading } = useAuth();
+  const { profile, fetchProfile } = useProfile();
 
   // Wait for hydration before allowing form submission
   useEffect(() => {
@@ -42,14 +44,15 @@ export default function LoginPage() {
       return;
     }
 
-    setLoading(true);
-
     try {
-      // Login with auth service (works for all roles)
-      await authService.login({ email: email.trim(), password });
+      // Login with auth hook (works for all roles)
+      const success = await login({ email: email.trim(), password });
+
+      if (!success) {
+        return;
+      }
 
       // Get user info to determine redirect
-      const user = authService.getUser();
       const userRole = user?.role || 'DOCTOR';
 
       // Redirect based on role
@@ -63,9 +66,9 @@ export default function LoginPage() {
         case 'DOCTOR':
           // For doctors, try to fetch their profile to check status
           try {
-            const { profile, fetchProfile } = useProfile();
-
             await fetchProfile();
+
+            console.log(profile);
 
             if (profile?.status === 'PENDING') {
               router.push('/application-status');
@@ -84,8 +87,6 @@ export default function LoginPage() {
       }
     } catch (err: any) {
       setError(err.message || "Login failed");
-    } finally {
-      setLoading(false);
     }
   };
 

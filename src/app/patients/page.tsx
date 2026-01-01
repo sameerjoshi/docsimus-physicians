@@ -31,6 +31,7 @@ import {
   DialogTitle,
 } from "@/src/components/ui/dialog";
 import { PatientAppointment } from "@/src/types/patients";
+import { RouteGuard } from "@/src/components/RouteGuard";
 
 export default function PatientsPage() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -92,7 +93,7 @@ export default function PatientsPage() {
   ];
 
   return (
-    <>
+    <RouteGuard>
       <AppHeader />
       <div className="min-h-screen bg-background">
         <motion.div
@@ -213,8 +214,8 @@ export default function PatientsPage() {
                                 <Calendar className="h-4 w-4 text-muted-foreground" />
                                 {patient.lastAppointment
                                   ? new Date(
-                                      patient.lastAppointment.scheduledAt
-                                    ).toLocaleDateString()
+                                    patient.lastAppointment.scheduledAt
+                                  ).toLocaleDateString()
                                   : "No visits"}
                               </p>
                             </td>
@@ -312,12 +313,12 @@ export default function PatientsPage() {
                                                 <Badge
                                                   className={
                                                     appointment.status ===
-                                                    "COMPLETED"
+                                                      "COMPLETED"
                                                       ? "bg-green-600 text-white"
                                                       : appointment.status ===
                                                         "CANCELLED"
-                                                      ? "bg-red-600 text-white"
-                                                      : "bg-blue-600 text-white"
+                                                        ? "bg-red-600 text-white"
+                                                        : "bg-blue-600 text-white"
                                                   }
                                                 >
                                                   {appointment.status}
@@ -389,8 +390,8 @@ export default function PatientsPage() {
                       Last visit:{" "}
                       {patient.lastAppointment
                         ? new Date(
-                            patient.lastAppointment.scheduledAt
-                          ).toLocaleDateString()
+                          patient.lastAppointment.scheduledAt
+                        ).toLocaleDateString()
                         : "No visits"}
                     </p>
                     {patient.lastAppointment?.reason && (
@@ -456,8 +457,8 @@ export default function PatientsPage() {
                                         appointment.status === "COMPLETED"
                                           ? "bg-green-600 text-white"
                                           : appointment.status === "CANCELLED"
-                                          ? "bg-red-600 text-white"
-                                          : "bg-blue-600 text-white"
+                                            ? "bg-red-600 text-white"
+                                            : "bg-blue-600 text-white"
                                       }
                                     >
                                       {appointment.status}
@@ -556,6 +557,6 @@ export default function PatientsPage() {
           )}
         </DialogContent>
       </Dialog>
-    </>
+    </RouteGuard>
   );
 }

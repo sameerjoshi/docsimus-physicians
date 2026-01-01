@@ -55,6 +55,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/src/components/ui/dialog";
+import { RouteGuard } from "@/src/components/RouteGuard";
 
 // Format duration to mm:ss
 function formatDuration(seconds: number): string {
@@ -739,7 +740,7 @@ export default function PhysicianConsultationRoomPage() {
   // Loading state
   if (isLoadingConsultation) {
     return (
-      <>
+      <RouteGuard>
         <AppHeader />
         <div className="min-h-screen bg-background flex items-center justify-center">
           <div className="text-center">
@@ -747,14 +748,14 @@ export default function PhysicianConsultationRoomPage() {
             <p className="text-muted-foreground">Loading consultation...</p>
           </div>
         </div>
-      </>
+      </RouteGuard>
     );
   }
 
   // Error state
   if (consultationError || !consultation) {
     return (
-      <>
+      <RouteGuard>
         <AppHeader />
         <div className="min-h-screen bg-background flex items-center justify-center">
           <Card className="max-w-md p-8 text-center">
@@ -771,14 +772,14 @@ export default function PhysicianConsultationRoomPage() {
             </Button>
           </Card>
         </div>
-      </>
+      </RouteGuard>
     );
   }
 
   // No room URL state
   if (!consultation.roomUrl) {
     return (
-      <>
+      <RouteGuard>
         <AppHeader />
         <div className="min-h-screen bg-background flex items-center justify-center">
           <Card className="max-w-md p-8 text-center">
@@ -791,14 +792,14 @@ export default function PhysicianConsultationRoomPage() {
             <Button onClick={() => window.location.reload()}>Try Again</Button>
           </Card>
         </div>
-      </>
+      </RouteGuard>
     );
   }
 
   // Waiting for call object
   if (!callObject) {
     return (
-      <>
+      <RouteGuard>
         <AppHeader />
         <div className="min-h-screen bg-background flex items-center justify-center">
           <div className="text-center">
@@ -806,13 +807,15 @@ export default function PhysicianConsultationRoomPage() {
             <p className="text-muted-foreground">Initializing video...</p>
           </div>
         </div>
-      </>
+      </RouteGuard>
     );
   }
 
   return (
-    <DailyProvider callObject={callObject}>
-      <ConsultationRoom consultation={consultation} />
-    </DailyProvider>
+    <RouteGuard>
+      <DailyProvider callObject={callObject}>
+        <ConsultationRoom consultation={consultation} />
+      </DailyProvider>
+    </RouteGuard>
   );
 }

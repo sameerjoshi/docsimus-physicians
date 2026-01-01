@@ -8,17 +8,18 @@ import { LoadingSpinner } from '@/src/components/loading-spinner';
 import { CheckCircle, XCircle, Mail } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { fadeInUp } from '@/src/lib/animations';
-import { authService } from '@/src/services/auth.service';
-import { toast } from 'sonner';
+import { useAuth } from '@/src/hooks/use-auth';
+import { GuardLevel, RouteGuard } from '@/src/components/RouteGuard';
 
 function VerifyEmailContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { verifyEmail } = useAuth();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [message, setMessage] = useState('');
 
   useEffect(() => {
-    const verifyEmail = async () => {
+    const handleVerifyEmail = async () => {
       const token = searchParams.get('token');
 
       if (!token) {
@@ -28,27 +29,29 @@ function VerifyEmailContent() {
       }
 
       try {
-        // Call the verification API
-        await authService.verifyEmail(token);
-        setStatus('success');
-        setMessage('Your email has been successfully verified!');
+        // Call the verification API via hook
+        const success = await verifyEmail(token);
 
-        // Show success toast
-        toast.success('Email verified successfully');
+        if (success) {
+          setStatus('success');
+          setMessage('Your email has been successfully verified!');
 
-        // Redirect to registration after 2 seconds
-        setTimeout(() => {
-          router.push('/registration');
-        }, 2000);
+          // Redirect to registration after 2 seconds
+          setTimeout(() => {
+            router.push('/registration');
+          }, 2000);
+        } else {
+          setStatus('error');
+          setMessage('Failed to verify email. The link may have expired.');
+        }
       } catch (error: any) {
         setStatus('error');
         setMessage(error.message || 'Failed to verify email. The link may have expired.');
-        toast.error('Email verification failed');
       }
     };
 
-    verifyEmail();
-  }, [searchParams, router, toast]);
+    handleVerifyEmail();
+  }, [searchParams, router, verifyEmail]);
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4 py-10">
@@ -111,12 +114,14 @@ function VerifyEmailContent() {
 
 export default function VerifyEmailPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <LoadingSpinner size="lg" />
-      </div>
-    }>
-      <VerifyEmailContent />
-    </Suspense>
+    <RouteGuard level={GuardLevel.AUTHENTICATED}>
+      <Suspense fallback={
+        <div className="min-h-screen bg-background flex items-center justify-center">
+          <LoadingSpinner size="lg" />
+        </div>
+      }>
+        <VerifyEmailContent />
+      </Suspense>
+    </RouteGuard>
   );
 }

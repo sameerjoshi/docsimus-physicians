@@ -122,77 +122,6 @@ export function useOnboarding() {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     }, [state]);
 
-    const registerUser = useCallback(
-        async (email: string, password: string, firstName?: string, lastName?: string): Promise<boolean> => {
-            setLoading(true);
-            setError(null);
-            try {
-                await authService.register({
-                    email,
-                    password,
-                    name: firstName && lastName ? `${firstName} ${lastName}` : undefined,
-                    role: "DOCTOR",
-                });
-
-                // Update local state
-                setState((prev) => ({
-                    ...prev,
-                    auth: { email },
-                    profile: {
-                        ...prev.profile,
-                        email,
-                        firstName: firstName || "",
-                        lastName: lastName || "",
-                    },
-                }));
-
-                setIsAuthenticated(true);
-                setLoading(false);
-                return true;
-            } catch (err) {
-                const apiError = err as ApiError;
-                setError(apiError.message || "Registration failed");
-                setLoading(false);
-                return false;
-            }
-        },
-        []
-    );
-
-    const loginUser = useCallback(
-        async (email: string, password: string): Promise<boolean> => {
-            setLoading(true);
-            setError(null);
-            try {
-                await authService.login({ email, password });
-
-                // Fetch doctor profile
-                const profile = await profileService.getProfile();
-                const convertedState = await convertBackendToState(profile);
-                setState(convertedState);
-
-                setIsAuthenticated(true);
-                setLoading(false);
-                return true;
-            } catch (err) {
-                const apiError = err as ApiError;
-                setError(apiError.message || "Login failed");
-                setLoading(false);
-                return false;
-            }
-        },
-        []
-    );
-
-    const logout = useCallback(() => {
-        authService.logout();
-        setState(cloneState(DEFAULT_ONBOARDING_STATE));
-        setIsAuthenticated(false);
-        if (typeof window !== "undefined") {
-            localStorage.removeItem(STORAGE_KEY);
-        }
-    }, []);
-
     const updateProfile = useCallback(
         async (profile: Partial<DoctorOnboardingState["profile"]>) => {
             setState((prev) => ({ ...prev, profile: { ...prev.profile, ...profile } }));
@@ -319,12 +248,8 @@ export function useOnboarding() {
 
     return {
         state,
-        isAuthenticated,
         loading,
         error,
-        registerUser,
-        loginUser,
-        logout,
         updateProfile,
         updateAddress,
         updateProfessional,

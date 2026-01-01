@@ -3,18 +3,18 @@
 import { useEffect, useState } from 'react';
 import { AppHeader } from '@/src/components/layout/app-header';
 import { Card } from '@/src/components/ui/card';
-import { Button } from '@/src/components/ui/button';
 import { Input } from '@/src/components/ui/input';
 import { Label } from '@/src/components/ui/label';
 import { LoadingSpinner } from '@/src/components/loading-spinner';
 import {
   User, Mail, Phone, MapPin, Briefcase, DollarSign, Globe,
-  FileText, CheckCircle, Clock, Edit, Save, Activity
+  FileText, CheckCircle, Clock, Activity
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { staggerContainer, staggerItem } from '@/src/lib/animations';
 import { toast } from 'sonner';
 import { useProfile } from '@/src/hooks/use-profile';
+import { RouteGuard } from '@/src/components/RouteGuard';
 
 export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
@@ -51,19 +51,19 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <>
+      <RouteGuard>
         <AppHeader />
         <div className="min-h-screen bg-background flex items-center justify-center">
           <LoadingSpinner size="lg" />
         </div>
-      </>
+      </RouteGuard>
     );
   }
 
   const isPending = profile?.status === 'PENDING';
 
   return (
-    <>
+    <RouteGuard>
       <AppHeader />
       <div className="min-h-screen bg-background">
         <motion.div
@@ -284,6 +284,6 @@ export default function ProfilePage() {
           </div>
         </motion.div>
       </div>
-    </>
+    </RouteGuard>
   );
 }

@@ -5,13 +5,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button, Card, CardContent, CardDescription, CardHeader, CardTitle, Input } from "@/src/components/ui";
 import { Mail, Lock, ArrowRight } from "lucide-react";
-import { useOnboarding } from "@/src/hooks/use-onboarding";
 import { fadeInUp } from "@/src/lib/animations";
 import { motion } from "framer-motion";
+import { useAuth } from "@/src/hooks/use-auth";
 
 export default function SignupPage() {
   const router = useRouter();
-  const { registerUser, loading } = useOnboarding();
+  const { register, error: registerError } = useAuth();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -42,8 +42,12 @@ export default function SignupPage() {
       return;
     }
     setError("");
-    const success = await registerUser(email.trim(), password, firstName.trim(), lastName.trim());
-    router.push("/verify-email");
+    const success = await register({ email: email.trim(), password, name: `${firstName.trim()} ${lastName.trim()}`, role: 'DOCTOR' });
+    if (success) {
+      router.push("/verify-email");
+    } else {
+      setError(registerError ?? '');
+    }
   };
 
   return (

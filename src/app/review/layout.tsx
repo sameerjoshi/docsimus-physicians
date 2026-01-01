@@ -1,13 +1,13 @@
 'use client';
 
-import { ReactNode, useState, useEffect } from "react";
+import { ReactNode, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, FileSearch, Menu, X, LogOut, User } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { LayoutDashboard, FileSearch, Menu, X, LogOut } from "lucide-react";
 import { cn } from "@/src/lib/utils";
 import { Button } from "@/src/components/ui";
-import { authService } from "@/src/services/auth.service";
+import { useAuth } from "@/src/hooks/use-auth";
 
 const navItems = [
   { label: "Dashboard", href: "/review", icon: LayoutDashboard },
@@ -16,24 +16,16 @@ const navItems = [
 
 export default function ReviewLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const router = useRouter();
+  const { user, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [currentUser, setCurrentUser] = useState<{ name: string | null; email: string; initials: string } | null>(null);
 
-  useEffect(() => {
-    const user = authService.getUser();
-    if (user) {
-      const initials = user.name
-        ? user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
-        : user.email.slice(0, 2).toUpperCase();
-
-      setCurrentUser({
-        name: user.name,
-        email: user.email,
-        initials
-      });
-    }
-  }, []);
+  const currentUser = user ? {
+    name: user.name,
+    email: user.email,
+    initials: user.name
+      ? user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+      : user.email.slice(0, 2).toUpperCase()
+  } : null;
 
   return (
     <div className="min-h-screen bg-secondary/50">
@@ -102,10 +94,7 @@ export default function ReviewLayout({ children }: { children: ReactNode }) {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => {
-                  authService.logout();
-                  router.push('/login');
-                }}
+                onClick={logout}
                 className="hidden md:flex items-center gap-2"
               >
                 <LogOut className="h-4 w-4" />
@@ -164,10 +153,7 @@ export default function ReviewLayout({ children }: { children: ReactNode }) {
                 })}
                 <div className="pt-2 mt-2 border-t border-border">
                   <button
-                    onClick={() => {
-                      authService.logout();
-                      router.push('/login');
-                    }}
+                    onClick={logout}
                     className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent w-full transition-colors"
                   >
                     <LogOut className="h-5 w-5" />
