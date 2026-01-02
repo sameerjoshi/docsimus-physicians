@@ -582,6 +582,17 @@ function ConsultationRoom({ consultation }: { consultation: Consultation }) {
                       </span>
                     </div>
                   )}
+                  {consultation.appointment?.contextSummary && (
+                    <div className="mt-3 p-2.5 bg-primary/5 border border-primary/20 rounded-lg">
+                      <div className="flex items-start gap-1.5 mb-1">
+                        <FileText className="w-3.5 h-3.5 text-primary mt-0.5 flex-shrink-0" />
+                        <span className="text-xs font-medium text-primary">Chat Context</span>
+                      </div>
+                      <p className="text-xs text-foreground/90 leading-relaxed whitespace-pre-wrap">
+                        {consultation.appointment.contextSummary}
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Notes Form */}
